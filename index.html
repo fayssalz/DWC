@@ -1,0 +1,614 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Diamond Weight Calculator</title>
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<style>
+  body { font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif; background-color: #f4f4f9; color: #333; display: flex; justify-content: center; padding: 20px; }
+  .calculator-container { background: #fff; padding: 30px; border-radius: 10px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); width: 100%; max-width: 500px; }
+  h2 { text-align: center; color: #444; margin-top: 0; }
+  .form-group { margin-bottom: 15px; }
+  label { display: block; margin-bottom: 5px; font-weight: 600; }
+  select, input { width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 5px; font-size: 16px; box-sizing: border-box; }
+  .results-box { background: #eef2f5; padding: 15px; border-radius: 5px; margin-top: 20px; text-align: center; }
+  #results { font-size: 1.1em; font-weight: bold; color: #2c3e50; margin-bottom: 10px; }
+  .meta-info { font-size: 0.9em; color: #666; display: flex; justify-content: space-between; }
+  .btn-group { display: flex; gap: 10px; margin-top: 20px; }
+  button { flex: 1; padding: 10px; border: none; border-radius: 5px; cursor: pointer; font-size: 16px; transition: background 0.3s; }
+  .btn-calc { background-color: #28a745; color: white; }
+  .btn-calc:hover { background-color: #218838; }
+  .btn-reset { background-color: #dc3545; color: white; }
+  .btn-reset:hover { background-color: #c82333; }
+  #diaimg { display: block; margin: 10px auto; max-height: 120px; }
+  .input-group { display: flex; align-items: center; gap: 10px; }
+  .input-group input[type="number"] { flex: 1; }
+  .lever { flex: 1; -webkit-appearance: none; appearance: none; height: 8px; background: #e0e0e0; outline: none; border-radius: 4px; cursor: ew-resize; touch-action: none; }
+  .lever::-webkit-slider-thumb { -webkit-appearance: none; appearance: none; width: 16px; height: 16px; background: #007bff; border-radius: 50%; cursor: ew-resize; transition: background .15s; }
+  .lever::-webkit-slider-thumb:hover { background: #0056b3; }
+  .lever::-moz-range-thumb { width: 16px; height: 16px; background: #007bff; border-radius: 50%; cursor: ew-resize; border: none; transition: background .15s; }
+  .lever::-moz-range-thumb:hover { background: #0056b3; }
+  #dia-svg-container { min-height: 150px; display: flex; align-items: center; justify-content: center; }
+  .dia-svg { display: none; }
+  .dia-svg.active { display: block; }
+</style>
+</head>
+<body>
+
+<div class="calculator-container">
+    <h2>Diamond Weight Calculator</h2>
+    <form name="dweightcalc" id="dweightcalc">
+        <div class="form-group">
+            <label for="diaform">Shape</label>
+            <select id="diaform" name="diaform" onchange="showform(); funcshowimg(); dwccalculate();">
+                <option value="1">Round</option>
+                <option value="2">Oval</option>
+                <option value="3">Princess</option>
+                <option value="4">Asscher</option>
+                <option value="5">Cushion</option>
+                <option value="6">Heart</option>
+                <option value="7">Baguette</option>
+                <option value="8">Trillion</option>
+                <option value="9">Emerald</option>
+                <option value="10">Radiant</option>
+                <option value="11">Marquise</option>
+                <option value="12">Pear</option>
+            </select>
+            <div style="text-align: center; margin-top: 5px; font-size: 0.9em; color: #555;">
+                Selected: <span id="sind">Round</span>
+            </div>
+        </div>
+
+        <div id="dia-svg-container">
+            <svg id="svg-1" class="dia-svg active" viewBox="0 0 100 100"><circle cx="50" cy="50" r="45" fill="#eef" stroke="#333" stroke-width="2"/></svg>
+            <svg id="svg-2" class="dia-svg" viewBox="0 0 100 100"><ellipse cx="50" cy="50" rx="35" ry="48" fill="#eef" stroke="#333" stroke-width="2"/></svg>
+            <svg id="svg-3" class="dia-svg" viewBox="0 0 100 100"><rect x="15" y="15" width="70" height="70" fill="#eef" stroke="#333" stroke-width="2"/></svg>
+            <svg id="svg-4" class="dia-svg" viewBox="0 0 100 100"><polygon points="30,15 70,15 85,30 85,70 70,85 30,85 15,70 15,30" fill="#eef" stroke="#333" stroke-width="2"/></svg>
+            <svg id="svg-5" class="dia-svg" viewBox="0 0 100 100"><rect x="15" y="15" width="70" height="70" rx="15" ry="15" fill="#eef" stroke="#333" stroke-width="2"/></svg>
+            <svg id="svg-6" class="dia-svg" viewBox="0 0 100 100"><path d="M50 90 C50 90 10 60 10 35 A20 20 0 0 1 50 35 A20 20 0 0 1 90 35 C90 60 50 90 50 90 Z" fill="#eef" stroke="#333" stroke-width="2"/></svg>
+            <svg id="svg-7" class="dia-svg" viewBox="0 0 100 100"><rect x="30" y="10" width="40" height="80" fill="#eef" stroke="#333" stroke-width="2"/></svg>
+            <svg id="svg-8" class="dia-svg" viewBox="0 0 100 100"><path d="M50 15 L85 80 L15 80 Z" fill="#eef" stroke="#333" stroke-width="2"/></svg>
+            <svg id="svg-9" class="dia-svg" viewBox="0 0 100 100"><polygon points="25,10 75,10 90,25 90,75 75,90 25,90 10,75 10,25" fill="#eef" stroke="#333" stroke-width="2"/></svg>
+            <svg id="svg-10" class="dia-svg" viewBox="0 0 100 100"><polygon points="25,10 75,10 90,25 90,75 75,90 25,90 10,75 10,25" fill="#eef" stroke="#333" stroke-width="2"/></svg>
+            <svg id="svg-11" class="dia-svg" viewBox="0 0 100 100"><path d="M50 5 Q90 50 50 95 Q10 50 50 5 Z" fill="#eef" stroke="#333" stroke-width="2"/></svg>
+            <svg id="svg-12" class="dia-svg" viewBox="0 0 100 100"><path d="M50 10 Q80 40 80 65 A30 30 0 0 1 20 65 Q20 40 50 10 Z" fill="#eef" stroke="#333" stroke-width="2"/></svg>
+        </div>
+
+        <div class="form-group" id="hdel1">
+            <label for="diamcut1">Diameter (mm)</label>
+            <div class="input-group">
+                <input type="number" id="diamcut1" value="6.50" step="0.01">
+                <input type="range" class="lever" min="-100" max="100" value="0" data-target="diamcut1" title="Slide to adjust">
+            </div>
+        </div>
+
+        <div class="form-group" id="lndiam" style="display:none;">
+            <label for="diamcut">Length (mm)</label>
+            <div class="input-group">
+                <input type="number" id="diamcut" value="6.50" step="0.01">
+                <input type="range" class="lever" min="-100" max="100" value="0" data-target="diamcut" title="Slide to adjust">
+            </div>
+        </div>
+
+        <div class="form-group" id="hdel" style="display:none;">
+            <label for="widecut">Width (mm)</label>
+            <div class="input-group">
+                <input type="number" id="widecut" value="6.50" step="0.01">
+                <input type="range" class="lever" min="-100" max="100" value="0" data-target="widecut" title="Slide to adjust">
+            </div>
+        </div>
+
+        <div class="form-group">
+            <label for="heightcut">Depth (mm)</label>
+            <input type="number" id="heightcut" value="3.90" step="0.01" onkeyup="dwccalculate()" onchange="dwccalculate()">
+        </div>
+
+        <div class="form-group">
+            <label for="girth">Girdle Thickness</label>
+            <select id="girth" onchange="dwccalculate()">
+                <option value="0">Thin - Medium</option>
+                <option value="0.01">Slightly Thick</option>
+                <option value="0.03">Thick</option>
+                <option value="0.05">Very Thick</option>
+                <option value="0.08">Extremely Thick</option>
+            </select>
+        </div>
+
+        <div class="form-group">
+            <label for="pavbul">Pavilion Bulge (%)</label>
+            <input type="number" id="pavbul" value="0" step="1" onkeyup="dwccalculate()" onchange="dwccalculate()">
+        </div>
+
+        <div class="results-box">
+            <div id="results">The diamond weights approximately 0.000 carats</div>
+            <div class="meta-info">
+                <span>Depth: <span id="dperc">60.00</span>%</span>
+                <span>L/W Ratio: <span id="lwratio">1.00 to 1</span></span>
+            </div>
+        </div>
+
+        <div id="melee-info-box" class="results-box" style="display: none; margin-top: 10px; background-color: #e6f7ff; text-align: left; padding: 10px 15px;">
+            <!-- Standard melee data will be injected here -->
+        </div>
+
+    </form>
+</div>
+
+<script>
+  const roundMeleeData = [
+      { min_mm: 0.90, max_mm: 1.10, carat: 0.005, cts_pcs: '1/200', sieve: '+000/-0' },
+      { min_mm: 1.10, max_mm: 1.15, carat: 0.006, cts_pcs: '1/175', sieve: '+0/-1' },
+      { min_mm: 1.15, max_mm: 1.20, carat: 0.007, cts_pcs: '1/150', sieve: '+1/-1.5' },
+      { min_mm: 1.20, max_mm: 1.25, carat: 0.008, cts_pcs: '1/120', sieve: '+1.5/-2' },
+      { min_mm: 1.25, max_mm: 1.30, carat: 0.009, cts_pcs: '1/100', sieve: '+2/-2.5' },
+      { min_mm: 1.30, max_mm: 1.35, carat: 0.01,  cts_pcs: '1/100', sieve: '+2.5/-3' },
+      { min_mm: 1.35, max_mm: 1.40, carat: 0.011, cts_pcs: '1/100', sieve: '+3/-3.5' },
+      { min_mm: 1.40, max_mm: 1.45, carat: 0.012, cts_pcs: '1/80',  sieve: '+3.5/-4' },
+      { min_mm: 1.45, max_mm: 1.50, carat: 0.013, cts_pcs: '1/80',  sieve: '+4/-4.5' },
+      { min_mm: 1.50, max_mm: 1.55, carat: 0.014, cts_pcs: '1/70',  sieve: '+4.5/-5' },
+      { min_mm: 1.55, max_mm: 1.60, carat: 0.016, cts_pcs: '1/60',  sieve: '+5/-5.5' },
+      { min_mm: 1.60, max_mm: 1.70, carat: 0.018, cts_pcs: '1/50',  sieve: '+5.5/-6' },
+      { min_mm: 1.70, max_mm: 1.80, carat: 0.021, cts_pcs: '1/50',  sieve: '+6/-6.5' },
+      { min_mm: 1.80, max_mm: 1.90, carat: 0.025, cts_pcs: '1/40',  sieve: '+6.5/-7' },
+      { min_mm: 1.90, max_mm: 2.00, carat: 0.029, cts_pcs: '1/30',  sieve: '+7/-7.5' },
+      { min_mm: 2.00, max_mm: 2.10, carat: 0.035, cts_pcs: '1/30',  sieve: '+7.5/-8' },
+      { min_mm: 2.10, max_mm: 2.20, carat: 0.039, cts_pcs: '1/25',  sieve: '+8/-8.5' },
+      { min_mm: 2.20, max_mm: 2.30, carat: 0.044, cts_pcs: '1/25',  sieve: '+8.5/-9' },
+      { min_mm: 2.30, max_mm: 2.40, carat: 0.052, cts_pcs: '1/20',  sieve: '+9/-9.5' },
+      { min_mm: 2.40, max_mm: 2.50, carat: 0.058, cts_pcs: '1/20',  sieve: '+9.5/-10' },
+      { min_mm: 2.50, max_mm: 2.60, carat: 0.069, cts_pcs: '1/15',  sieve: '+10/-10.5' },
+      { min_mm: 2.60, max_mm: 2.70, carat: 0.074, cts_pcs: '1/15',  sieve: '+10.5/-11' },
+      { min_mm: 2.70, max_mm: 2.80, carat: 0.078, cts_pcs: '1/12',  sieve: '+11/-11.5' },
+      { min_mm: 2.80, max_mm: 2.90, carat: 0.086, cts_pcs: '1/12',  sieve: '+11.5/-12' },
+      { min_mm: 2.90, max_mm: 3.00, carat: 0.095, cts_pcs: '1/10',  sieve: '+12/-12.5' },
+      { min_mm: 3.00, max_mm: 3.10, carat: 0.108, cts_pcs: '1/10',  sieve: '+12.5/-13' },
+      { min_mm: 3.10, max_mm: 3.20, carat: 0.116, cts_pcs: '1/8',   sieve: '+13/-13.5' },
+      { min_mm: 3.20, max_mm: 3.30, carat: 0.13,  cts_pcs: '1/8',   sieve: '+13.5/-14' },
+      { min_mm: 3.30, max_mm: 3.40, carat: 0.145, cts_pcs: '1/6',   sieve: '+14/-14.5' },
+      { min_mm: 3.40, max_mm: 3.50, carat: 0.155, cts_pcs: '1/6',   sieve: '+14.5/-15' },
+      { min_mm: 3.50, max_mm: 3.60, carat: 0.165, cts_pcs: '1/6',   sieve: '+15/-15.5' },
+      { min_mm: 3.60, max_mm: 3.70, carat: 0.19,  cts_pcs: '1/5',   sieve: '+15.5/-15.75' },
+      { min_mm: 3.70, max_mm: 3.80, carat: 0.20,  cts_pcs: '1/5',   sieve: '+15.75/-16.5' }
+  ];
+  function rt1() {
+    $("#diamcut1").off("input").on("input", function () {
+      var e = $(this).val(),
+        t = (1 * e * 60) / 100;
+      $("#heightcut").val(t.toFixed(2));
+      dwccalculate();
+    });
+  }
+  function rt2() {
+    $("#widecut").off("input").on("input", function () {
+      var e = $(this).val(),
+        t = (1 * e * 60) / 100;
+      $("#heightcut").val(t.toFixed(2));
+      dwccalculate();
+    });
+  }
+  function showform() {
+    var e = document.getElementById("diaform"),
+      t = document.getElementById("diaform").options.selectedIndex,
+      n = document.getElementById("diaform").options[t].text;
+    ($("#sind").html(n),
+      0 == e.selectedIndex
+        ? ($("#hdel1").show(), $("#hdel").hide(), $("#lndiam").hide(), rt1())
+        : ($("#hdel").show(), $("#hdel1").hide(), $("#lndiam").show(), rt2()));
+  }
+  function dwcreset() {
+    ((document.getElementById("dperc").innerHTML = "60"),
+      (document.getElementById("lwratio").innerHTML = "1.00 to 1"),
+      (document.getElementById("results").innerHTML =
+        "The diamond weights approximately 3.660 carats"));
+  }
+  function updateSvgProportions() {
+    var shape = $('#diaform').val();
+    var length, width;
+    
+    // Get dimensions based on shape type
+    if (shape == 1) {
+        length = parseFloat($('#diamcut1').val()) || 0;
+        width = length;
+    } else {
+        length = parseFloat($('#diamcut').val()) || 0;
+        width = parseFloat($('#widecut').val()) || 0;
+    }
+
+    if (length <= 0 || width <= 0) return;
+
+    // Real Size Scaling:
+    // Use CSS 'mm' units. This relies on the browser/OS to scale correctly for the screen PPI.
+    // The shape fills ~90% of the SVG viewBox.
+    // Container Size = target_mm / 0.9
+    var maxDim = Math.max(length, width);
+    var mmSize = maxDim / 0.59;
+    
+    var $svg = $('#svg-' + shape);
+    $svg.css({ width: mmSize + 'mm', height: mmSize + 'mm' });
+
+    if (shape == 1) return; // Round is already correct (circle in square)
+
+    var scale = 90 / maxDim;
+
+    var svgHeight = length * scale;
+    var svgWidth = width * scale;
+
+    // Center the shape
+    var svgX = (100 - svgWidth) / 2;
+    var svgY = (100 - svgHeight) / 2;
+
+    var $shapeEl = $svg.children().first();
+
+    switch (String(shape)) {
+        case '2': // Oval
+            $shapeEl.attr('ry', svgHeight / 2).attr('rx', svgWidth / 2).attr('cy', 50).attr('cx', 50);
+            break;
+        case '3': // Princess
+        case '7': // Baguette
+            $shapeEl.attr('width', svgWidth).attr('height', svgHeight).attr('x', svgX).attr('y', svgY);
+            break;
+        case '5': // Cushion
+            $shapeEl.attr('width', svgWidth).attr('height', svgHeight).attr('x', svgX).attr('y', svgY);
+            var minSvgDim = Math.min(svgWidth, svgHeight);
+            $shapeEl.attr('rx', 15 * (minSvgDim / 70)).attr('ry', 15 * (minSvgDim / 70));
+            break;
+        case '4': // Asscher (original bbox ~70x70)
+            $shapeEl.attr('transform', 'translate(50 50) scale(' + (svgWidth / 70) + ' ' + (svgHeight / 70) + ') translate(-50 -50)');
+            break;
+        case '6': // Heart (original bbox ~80w x 70h)
+            $shapeEl.attr('transform', 'translate(50 55) scale(' + (svgWidth / 80) + ' ' + (svgHeight / 70) + ') translate(-50 -55)');
+            break;
+        case '8': // Trillion (original bbox ~70w x 65h)
+            $shapeEl.attr('transform', 'translate(50 47.5) scale(' + (svgWidth / 70) + ' ' + (svgHeight / 65) + ') translate(-50 -47.5)');
+            break;
+        case '9': // Emerald
+        case '10': // Radiant (original bbox ~80x80)
+            $shapeEl.attr('transform', 'translate(50 50) scale(' + (svgWidth / 80) + ' ' + (svgHeight / 80) + ') translate(-50 -50)');
+            break;
+        case '11': // Marquise (original bbox ~80w x 90h)
+            $shapeEl.attr('transform', 'translate(50 50) scale(' + (svgWidth / 80) + ' ' + (svgHeight / 90) + ') translate(-50 -50)');
+            break;
+        case '12': // Pear (original bbox ~60w x 85h)
+            $shapeEl.attr('transform', 'translate(50 52.5) scale(' + (svgWidth / 60) + ' ' + (svgHeight / 85) + ') translate(-50 -52.5)');
+            break;
+    }
+  }
+  function dwccalculate() {
+    var r_lookup = 1 * document.getElementById("diaform").selectedIndex + 1;
+    if (r_lookup === 1) {
+        var m_lookup = 1 * document.getElementById("diamcut1").value;
+        var meleeInfo = roundMeleeData.find(d => m_lookup >= d.min_mm && m_lookup < d.max_mm);
+        if (meleeInfo) {
+            $('#melee-info-box').show().html(
+                `<div style="font-weight: bold; margin-bottom: 5px;">Standard Melee Data (for ${m_lookup.toFixed(2)}mm)</div>` +
+                `<div style="display: flex; justify-content: space-between;"><span>Carat Weight:</span> <strong>${meleeInfo.carat} ct</strong></div>` +
+                `<div style="display: flex; justify-content: space-between;"><span>Pieces per Carat:</span> <strong>~${meleeInfo.cts_pcs.split('/')[1]}</strong></div>` +
+                `<div style="display: flex; justify-content: space-between;"><span>Sieve Size:</span> <strong>${meleeInfo.sieve}</strong></div>`
+            );
+        } else {
+            $('#melee-info-box').hide();
+        }
+    } else {
+        $('#melee-info-box').hide();
+    }
+
+
+    var e,
+      t,
+      n,
+      d = 1 * document.getElementById("girth").value,
+      i = (1 * document.getElementById("pavbul").value) / 100,
+      r = 1 * document.getElementById("diaform").selectedIndex + 1,
+      o = 1 * document.getElementById("heightcut").value,
+      a = 1 * document.getElementById("diamcut").value,
+      m = 1 * document.getElementById("diamcut1").value,
+      l = 1 * document.getElementById("widecut").value;
+    switch (r) {
+      case 1:
+        if (
+          ((t = ((100 * o) / m).toFixed(2)), (n = (m / m).toFixed(2)), m > 0.9)
+        ) {
+          if (o > 0) {
+            var s = m * m * o * 0.0061;
+            ((s = s * d + s * i + s),
+              (document.getElementById("results").innerHTML =
+                "The diamond weights approximately  " +
+                s.toFixed(3) +
+                " carats"));
+          } else {
+            var s = m * m * m * 0.6299 * 0.0061;
+            s = s * d + s * i + s;
+            var c = m * m * m * 0.583 * 0.0061;
+            ((c = c * d + c * i + c),
+              (hmax = 0.6299 * m),
+              (hmin = 0.583 * m),
+              (document.getElementById("results").innerHTML =
+                "The diamond weights approximately  " +
+                c.toFixed(3) +
+                " &ndash; " +
+                s.toFixed(3) +
+                " carats (height:" +
+                hmin.toFixed(2) +
+                " &ndash; " +
+                hmax.toFixed(2) +
+                " mm)."));
+          }
+          ((document.getElementById("dperc").innerHTML = t),
+            (document.getElementById("lwratio").innerHTML = n + " to 1"));
+        } else if (o > 0.3) {
+          var u = o / 0.583,
+            g = o / 0.6299,
+            s = Math.pow(u, 2) * o * 0.0061;
+          s = s * d + s * i + s;
+          var c = Math.pow(g, 2) * o * 0.0061;
+          ((c = c * d + c * i + c),
+            (document.getElementById("results").innerHTML =
+              "The diamond weights approximately " +
+              c.toFixed(3) +
+              " &ndash; " +
+              s.toFixed(3) +
+              " carats (diameter:" +
+              g.toFixed(2) +
+              " &ndash; " +
+              u.toFixed(2) +
+              " mm)."),
+            (document.getElementById("dperc").innerHTML = t),
+            (document.getElementById("lwratio").innerHTML = n + " to 1"));
+        } else
+          document.getElementById("results").innerHTML =
+            "Error: Not enough data";
+        break;
+      case 2:
+        if (
+          ((t = ((100 * o) / l).toFixed(2)),
+          (n = (a / l).toFixed(2)),
+          a > 0 && o > 0 && l > 0)
+        ) {
+          ((a += l), (a /= 2));
+          var h = Math.pow(a, 2) * o * 0.0062;
+          ((h = h * d + h * i + h),
+            (document.getElementById("results").innerHTML =
+              "The diamond weights approximately " + h.toFixed(3) + " carats"),
+            (document.getElementById("dperc").innerHTML = t),
+            (document.getElementById("lwratio").innerHTML = n + " to 1"));
+        } else
+          document.getElementById("results").innerHTML =
+            "Error: Not enough data";
+        break;
+      case 3:
+        if (
+          ((t = ((100 * o) / l).toFixed(2)),
+          (n = (a / l).toFixed(2)),
+          a > 0 && o > 0 && l > 0)
+        ) {
+          var h = o * a * l * 0.0083;
+          ((h = h * d + h * i + h),
+            (document.getElementById("results").innerHTML =
+              "The diamond weights approximately " + h.toFixed(3) + " carats"),
+            (document.getElementById("dperc").innerHTML = t),
+            (document.getElementById("lwratio").innerHTML = n + " to 1"));
+        } else
+          document.getElementById("results").innerHTML =
+            "Error: Not enough data";
+        break;
+      case 4:
+        if (
+          ((t = ((100 * o) / l).toFixed(2)),
+          (n = (a / l).toFixed(2)),
+          a > 0 && o > 0 && l > 0)
+        ) {
+          var h = o * a * l * 0.008;
+          ((h = h * d + h * i + h),
+            (document.getElementById("results").innerHTML =
+              "The diamond weights approximately " + h.toFixed(3) + " carats"),
+            (document.getElementById("dperc").innerHTML = t),
+            (document.getElementById("lwratio").innerHTML = n + " to 1"));
+        } else
+          document.getElementById("results").innerHTML =
+            "Error: Not enough data";
+        break;
+      case 5:
+        if (
+          ((t = ((100 * o) / l).toFixed(2)),
+          (n = (a / l).toFixed(2)),
+          a > 0 && o > 0 && l > 0)
+        ) {
+          var h = o * a * l * 0.00815;
+          ((h = h * d + h * i + h),
+            (document.getElementById("results").innerHTML =
+              "The diamond weights approximately " + h.toFixed(3) + " carats"),
+            (document.getElementById("dperc").innerHTML = t),
+            (document.getElementById("lwratio").innerHTML = n + " to 1"));
+        } else
+          document.getElementById("results").innerHTML =
+            "Error: Not enough data";
+        break;
+      case 6:
+        if (
+          ((t = ((100 * o) / l).toFixed(2)),
+          (n = (a / l).toFixed(2)),
+          a > 0 && o > 0 && l > 0)
+        ) {
+          var h = l * a * o * 0.0059;
+          ((h = h * d + h * i + h),
+            (document.getElementById("results").innerHTML =
+              "The diamond weights approximately " + h.toFixed(3) + " carats"),
+            (document.getElementById("dperc").innerHTML = t),
+            (document.getElementById("lwratio").innerHTML = n + " to 1"));
+        } else
+          document.getElementById("results").innerHTML =
+            "Error: Not enough data";
+        break;
+      case 7:
+        if (
+          ((t = ((100 * o) / l).toFixed(2)),
+          (n = (a / l).toFixed(2)),
+          a > 0 && o > 0 && l > 0)
+        ) {
+          var h = l * a * o * 0.00915;
+          ((h = h * d + h * i + h),
+            (document.getElementById("results").innerHTML =
+              "The diamond weights approximately " + h.toFixed(3) + " carats"),
+            (document.getElementById("dperc").innerHTML = t),
+            (document.getElementById("lwratio").innerHTML = n + " to 1"));
+        } else
+          document.getElementById("results").innerHTML =
+            "Error: Not enough data";
+        break;
+      case 8:
+        if (
+          ((t = ((100 * o) / l).toFixed(2)),
+          (n = (a / l).toFixed(2)),
+          a > 0 && o > 0 && l > 0)
+        ) {
+          var h = l * a * o * 0.0057;
+          ((h = h * d + h * i + h),
+            (document.getElementById("results").innerHTML =
+              "The diamond weights approximately " + h.toFixed(3) + " carats"),
+            (document.getElementById("dperc").innerHTML = t),
+            (document.getElementById("lwratio").innerHTML = n + " to 1"));
+        } else
+          document.getElementById("results").innerHTML =
+            "Error: Not enough data";
+        break;
+      case 9:
+        if (
+          ((t = ((100 * o) / l).toFixed(2)),
+          (n = (a / l).toFixed(2)),
+          a > 0 && o > 0 && l > 0)
+        ) {
+          if (((e = (a / l) * 1), (e = e.toFixed(2)), 1.5 >= e)) var y = 0.008;
+          if (2 > e && e >= 1.5) var y = 0.0092;
+          if (2.5 > e && e >= 2) var y = 0.01;
+          if (e >= 2.5) var y = 0.0106;
+          var h = l * a * o * y;
+          ((h = h * d + h * i + h),
+            (document.getElementById("results").innerHTML =
+              "The diamond weights approximately " + h.toFixed(3) + " carats"),
+            (document.getElementById("dperc").innerHTML = t),
+            (document.getElementById("lwratio").innerHTML = n + " to 1"));
+        } else
+          document.getElementById("results").innerHTML =
+            "Error: Not enough data";
+        break;
+      case 10:
+        if (
+          ((t = ((100 * o) / l).toFixed(2)),
+          (n = (a / l).toFixed(2)),
+          a > 0 && o > 0 && l > 0)
+        ) {
+          if (((e = (a / l) * 1), (e = e.toFixed(2)), 1.5 >= e)) var y = 0.0081;
+          if (e > 1.5) var y = 0.0084;
+          var h = l * a * o * y;
+          ((h = h * d + h * i + h),
+            (document.getElementById("results").innerHTML =
+              "The diamond weights approximately " + h.toFixed(3) + " carats"),
+            (document.getElementById("dperc").innerHTML = t),
+            (document.getElementById("lwratio").innerHTML = n + " to 1"));
+        } else
+          document.getElementById("results").innerHTML =
+            "Error: Not enough data";
+        break;
+      case 11:
+        if (
+          ((t = ((100 * o) / l).toFixed(2)),
+          (n = (a / l).toFixed(2)),
+          a > 0 && o > 0 && l > 0)
+        ) {
+          if (((e = (a / l) * 1), (e = e.toFixed(2)), 2 >= e)) var y = 0.00565;
+          if (2.5 > e && e >= 2) var y = 0.0058;
+          if (3 > e && e >= 2) var y = 0.00585;
+          if (e >= 3) var y = 0.00595;
+          var h = l * a * o * y;
+          ((h = h * d + h * i + h),
+            (document.getElementById("results").innerHTML =
+              "The diamond weights approximately " + h.toFixed(3) + " carats"),
+            (document.getElementById("dperc").innerHTML = t),
+            (document.getElementById("lwratio").innerHTML = n + " to 1"));
+        } else
+          document.getElementById("results").innerHTML =
+            "Error: Not enough data";
+        break;
+      case 12:
+        if (
+          ((t = ((100 * o) / l).toFixed(2)),
+          (n = (a / l).toFixed(2)),
+          a > 0 && o > 0 && l > 0)
+        ) {
+          if (((e = (a / l) * 1), (e = e.toFixed(2)), 1.25 >= e))
+            var y = 0.00615;
+          if (1.5 >= e && e > 1.25) var y = 0.006;
+          if (1.66 >= e && e > 1.5) var y = 0.0059;
+          if (e > 1.66) var y = 0.00575;
+          var h = l * a * o * y;
+          ((h = h * d + h * i + h),
+            (document.getElementById("results").innerHTML =
+              "The diamond weights approximately " + h.toFixed(3) + " carats"),
+            (document.getElementById("dperc").innerHTML = t),
+            (document.getElementById("lwratio").innerHTML = n + " to 1"));
+        } else
+          document.getElementById("results").innerHTML =
+            "Error: Not enough data";
+    }
+    updateSvgProportions();
+  }
+  function funcshowimg() {
+    var val = document.getElementById("diaform").value;
+    $('.dia-svg').removeClass('active');
+    $('#svg-' + val).addClass('active');
+  }
+  (showform(), funcshowimg(), dwccalculate());
+
+  // Lever Logic
+  $(document).ready(function() {
+      var leverInterval;
+      var $activeLever = null;
+      var highPrecisionValue; // Variable to store the un-rounded value
+
+      // Add a handler for the length input to recalculate on any input
+      $('#diamcut').on('input', dwccalculate);
+
+      $('.lever').on('mousedown touchstart', function(e) {
+          $activeLever = $(this);
+          var targetId = $activeLever.data('target');
+          var $target = $('#' + targetId);
+          
+          // Initialize the high-precision value from the input when interaction starts
+          highPrecisionValue = parseFloat($target.val()) || 0;
+
+          clearInterval(leverInterval);
+          leverInterval = setInterval(function() {
+              var val = parseFloat($activeLever.val());
+              if (val === 0) return;
+              
+              // Increased exponent from 2 to 4 for a much slower start and faster ramp-up.
+              // You can adjust '4' to tune the sensitivity. Higher numbers = slower start.
+              var speed = Math.pow(Math.abs(val) / 100, 4) * 0.2;
+              if (val < 0) speed = -speed;
+              
+              // Update the high-precision value internally
+              highPrecisionValue = Math.max(0, highPrecisionValue + speed);
+              
+              // Update the input field for display, but calculations use the precise value
+              $target.val(highPrecisionValue.toFixed(2));
+              
+              // Trigger the input event to make the main calculator update
+              $target.trigger('input');
+          }, 20);
+      });
+
+      $(window).on('mouseup touchend', function() {
+          if ($activeLever) {
+              clearInterval(leverInterval);
+
+              // Trigger one final input event to ensure the calculator has the last value
+              var targetId = $activeLever.data('target');
+              $('#' + targetId).trigger('input');
+
+              $activeLever.val(0); // Reset slider position
+              $activeLever = null;
+          }
+      });
+  });
+</script>

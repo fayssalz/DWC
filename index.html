@@ -32,6 +32,19 @@
   #dia-svg-container { min-height: 150px; display: flex; align-items: center; justify-content: center; }
   .dia-svg { display: none; }
   .dia-svg.active { display: block; }
+  /* Calibration Modal Styles */
+  #calib-modal { display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.85); z-index:2000; align-items:center; justify-content:center; flex-direction:column; color:#fff; text-align:center; }
+  #calib-card { background: #007bff; border-radius: 8px; margin: 20px auto; position: relative; box-shadow: 0 0 20px rgba(0,0,0,0.5); transition: width 0.1s, height 0.1s; }
+  #calib-card::after { content: "Credit Card"; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); font-weight: bold; font-size: 1.2em; color: rgba(255,255,255,0.5); white-space: nowrap; }
+  .calib-controls { width: 90%; max-width: 400px; background: #fff; padding: 20px; border-radius: 10px; color: #333; }
+  .btn-save { background: #28a745; color: white; width: 100%; padding: 10px; border: none; border-radius: 5px; font-size: 16px; margin-top: 15px; cursor: pointer; }
+  .btn-calib-open { background: #6c757d; color: white; font-size: 0.8em; padding: 5px 10px; margin-top: 5px; border: none; border-radius: 4px; cursor: pointer; }
+  .btn-fine { background: #e2e6ea; border: 1px solid #ced4da; color: #333; width: 40px; height: 40px; font-size: 1.2em; border-radius: 5px; cursor: pointer; display: flex; align-items: center; justify-content: center; }
+  .btn-fine:active { background-color: #dae0e5; }
+  #calib-ruler { background: #fff; border: 2px solid #333; margin: 20px auto; position: relative; box-shadow: 0 0 10px rgba(0,0,0,0.2); display: none; }
+  #calib-ruler::after { content: "50 mm"; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); font-weight: bold; color: #333; }
+  .mode-btn { padding: 5px 10px; font-size: 0.85em; border: 1px solid #ccc; background: #f8f9fa; cursor: pointer; border-radius: 4px; }
+  .mode-btn.active { background: #007bff; color: #fff; border-color: #007bff; }
 </style>
 </head>
 <body>
@@ -73,6 +86,9 @@
             <svg id="svg-10" class="dia-svg" viewBox="0 0 100 100"><polygon points="25,10 75,10 90,25 90,75 75,90 25,90 10,75 10,25" fill="#eef" stroke="#333" stroke-width="2"/></svg>
             <svg id="svg-11" class="dia-svg" viewBox="0 0 100 100"><path d="M50 5 Q90 50 50 95 Q10 50 50 5 Z" fill="#eef" stroke="#333" stroke-width="2"/></svg>
             <svg id="svg-12" class="dia-svg" viewBox="0 0 100 100"><path d="M50 10 Q80 40 80 65 A30 30 0 0 1 20 65 Q20 40 50 10 Z" fill="#eef" stroke="#333" stroke-width="2"/></svg>
+        </div>
+        <div style="text-align:center;">
+            <button type="button" class="btn-calib-open" onclick="openCalibration()">Calibrate Screen Size</button>
         </div>
 
         <div class="form-group" id="hdel1">
@@ -135,6 +151,26 @@
     </form>
 </div>
 
+<div id="calib-modal">
+    <div class="calib-controls">
+        <h3>Screen Calibration</h3>
+        <div style="margin-bottom:10px;">
+            <button type="button" class="mode-btn active" onclick="setCalibMode('card')" id="btn-mode-card">Credit Card</button>
+            <button type="button" class="mode-btn" onclick="setCalibMode('ruler')" id="btn-mode-ruler">Ruler (50mm)</button>
+        </div>
+        <p id="calib-instr" style="font-size:0.9em; color:#666;">Place a standard credit card against the screen. Adjust until the width matches exactly.</p>
+        <div id="calib-card" style="width:85.6mm; height:53.98mm;"></div>
+        <div id="calib-ruler" style="width:50mm; height:15mm;"></div>
+        <label for="calib-slider" style="margin-top:10px;">Adjust Size:</label>
+        <div style="display:flex; align-items:center; gap:10px;">
+            <button type="button" class="btn-fine" onclick="adjustCalib(-0.002)">-</button>
+            <input type="range" id="calib-slider" min="0.5" max="3.0" step="0.001" style="flex:1;">
+            <button type="button" class="btn-fine" onclick="adjustCalib(0.002)">+</button>
+        </div>
+        <button type="button" class="btn-save" onclick="saveCalibration()">Save & Close</button>
+    </div>
+</div>
+
 <script>
   const roundMeleeData = [
       { min_mm: 0.90, max_mm: 1.10, carat: 0.005, cts_pcs: '1/200', sieve: '+000/-0' },
@@ -171,6 +207,15 @@
       { min_mm: 3.60, max_mm: 3.70, carat: 0.19,  cts_pcs: '1/5',   sieve: '+15.5/-15.75' },
       { min_mm: 3.70, max_mm: 3.80, carat: 0.20,  cts_pcs: '1/5',   sieve: '+15.75/-16.5' }
   ];
+  const idealProportions = {
+      2: { depth: [57, 62], ratio: [[1.40, 1.55]] }, // Oval
+      3: { depth: [64, 73], ratio: [[1.00, 1.05], [1.49, 1.73]] }, // Princess
+      4: { depth: [61, 67], ratio: [[1.00, 1.05]] }, // Asscher
+      5: { depth: [61, 67], ratio: [[1.00, 1.05], [1.20, 1.25]] }, // Cushion
+      9: { depth: [61, 67], ratio: [[1.00, 1.05], [1.39, 1.50]] }, // Emerald
+      10: { depth: [61, 67], ratio: [[1.00, 1.05], [1.20, 1.31]] }, // Radiant
+      11: { depth: [57, 62], ratio: [[1.80, 2.05]] } // Marquise
+  };
   function rt1() {
     $("#diamcut1").off("input").on("input", function () {
       var e = $(this).val(),
@@ -202,6 +247,9 @@
       (document.getElementById("results").innerHTML =
         "The diamond weights approximately 3.660 carats"));
   }
+
+  var calibrationScale = parseFloat(localStorage.getItem('dwc_scale')) || 1.525;
+
   function updateSvgProportions() {
     var shape = $('#diaform').val();
     var length, width;
@@ -222,7 +270,7 @@
     // The shape fills ~90% of the SVG viewBox.
     // Container Size = target_mm / 0.9
     var maxDim = Math.max(length, width);
-    var mmSize = maxDim / 0.59;
+    var mmSize = (maxDim / 0.9) * calibrationScale;
     
     var $svg = $('#svg-' + shape);
     $svg.css({ width: mmSize + 'mm', height: mmSize + 'mm' });
@@ -551,6 +599,33 @@
           document.getElementById("results").innerHTML =
             "Error: Not enough data";
     }
+
+    // Check for Ideal Proportions and colorize
+    var depthElem = document.getElementById("dperc");
+    var ratioElem = document.getElementById("lwratio");
+    
+    // Reset styles
+    depthElem.style.color = "";
+    depthElem.style.fontWeight = "";
+    ratioElem.style.color = "";
+    ratioElem.style.fontWeight = "";
+
+    if (t && n && idealProportions[r]) {
+        var curDepth = parseFloat(t);
+        var curRatio = parseFloat(n);
+        var ideals = idealProportions[r];
+
+        if (curDepth >= ideals.depth[0] && curDepth <= ideals.depth[1]) {
+            depthElem.style.color = "#28a745";
+            depthElem.style.fontWeight = "bold";
+        }
+        
+        if (ideals.ratio.some(range => curRatio >= range[0] && curRatio <= range[1])) {
+            ratioElem.style.color = "#28a745";
+            ratioElem.style.fontWeight = "bold";
+        }
+    }
+
     updateSvgProportions();
   }
   function funcshowimg() {
@@ -558,6 +633,53 @@
     $('.dia-svg').removeClass('active');
     $('#svg-' + val).addClass('active');
   }
+
+  var currentCalibMode = 'card';
+
+  function openCalibration() {
+      $('#calib-modal').css('display', 'flex');
+      $('#calib-slider').val(calibrationScale);
+      setCalibMode(currentCalibMode);
+      updateCalibrationPreview();
+  }
+  
+  function setCalibMode(mode) {
+      currentCalibMode = mode;
+      $('.mode-btn').removeClass('active');
+      $('#btn-mode-' + mode).addClass('active');
+      
+      if (mode === 'card') {
+          $('#calib-card').show();
+          $('#calib-ruler').hide();
+          $('#calib-instr').text("Place a standard credit card against the screen. Adjust until the width matches exactly.");
+      } else {
+          $('#calib-card').hide();
+          $('#calib-ruler').show();
+          $('#calib-instr').text("Place a ruler against the screen. Adjust until the box width is exactly 50mm.");
+      }
+      updateCalibrationPreview();
+  }
+
+  function adjustCalib(delta) {
+      var val = parseFloat($('#calib-slider').val()) || 1;
+      val += delta;
+      $('#calib-slider').val(val);
+      updateCalibrationPreview();
+  }
+
+  function updateCalibrationPreview() {
+      var val = parseFloat($('#calib-slider').val());
+      $('#calib-card').css({ width: (85.60 * val) + 'mm', height: (53.98 * val) + 'mm' });
+      $('#calib-ruler').css({ width: (50.00 * val) + 'mm' });
+  }
+  function saveCalibration() {
+      calibrationScale = parseFloat($('#calib-slider').val());
+      localStorage.setItem('dwc_scale', calibrationScale);
+      $('#calib-modal').hide();
+      dwccalculate();
+  }
+  $(document).on('input', '#calib-slider', updateCalibrationPreview);
+
   (showform(), funcshowimg(), dwccalculate());
 
   // Lever Logic

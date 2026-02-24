@@ -68,9 +68,6 @@
                 <option value="11">Marquise</option>
                 <option value="12">Pear</option>
             </select>
-            <div style="text-align: center; margin-top: 5px; font-size: 0.9em; color: #555;">
-                Selected: <span id="sind">Round</span>
-            </div>
         </div>
 
         <div id="dia-svg-container">
@@ -208,13 +205,31 @@
       { min_mm: 3.70, max_mm: 3.80, carat: 0.20,  cts_pcs: '1/5',   sieve: '+15.75/-16.5' }
   ];
   const idealProportions = {
-      2: { depth: [57, 62], ratio: [[1.40, 1.55]] }, // Oval
-      3: { depth: [64, 73], ratio: [[1.00, 1.05], [1.49, 1.73]] }, // Princess
-      4: { depth: [61, 67], ratio: [[1.00, 1.05]] }, // Asscher
-      5: { depth: [61, 67], ratio: [[1.00, 1.05], [1.20, 1.25]] }, // Cushion
-      9: { depth: [61, 67], ratio: [[1.00, 1.05], [1.39, 1.50]] }, // Emerald
+      2: { depth: [58, 63], ratio: [[1.35, 1.50]] }, // Oval
+      3: { depth: [65, 73], ratio: [[0.95, 1.05]] }, // Princess
+      4: { depth: [63, 69], ratio: [[0.95, 1.05]] }, // Asscher
+      5: { depth: [62, 68], ratio: [[0.95, 1.05], [1.20, 1.25]] }, // Cushion
+      6: { depth: [51.9, 61], ratio: [[0.85, 1.05]] }, // Heart
+      7: { depth: [56.5, 65], ratio: [[3, 5]] }, // Baguette
+      8: { depth: [35, 48], ratio: [[0.95, 1.05]] }, // Trillion
+      9: { depth: [60, 68], ratio: [[0.95, 1.05], [1.35, 1.56]] }, // Emerald
       10: { depth: [61, 67], ratio: [[1.00, 1.05], [1.20, 1.31]] }, // Radiant
-      11: { depth: [57, 62], ratio: [[1.80, 2.05]] } // Marquise
+      11: { depth: [57.5, 64.5], ratio: [[1.70, 2.25]] }, // Marquise
+      12: { depth: [57.5, 65], ratio: [[1.40, 1.75]] }, // Pear
+  };
+  const shapeDefaults = {
+      1: { l: 6.50, w: 6.50, d: 3.90 },
+      2: { l: 8.00, w: 5.50, d: 3.41 },
+      3: { l: 5.50, w: 5.50, d: 3.85 },
+      4: { l: 5.50, w: 5.50, d: 3.63 },
+      5: { l: 6.00, w: 6.00, d: 3.90 },
+      6: { l: 6.00, w: 6.00, d: 3.54 },
+      7: { l: 6.00, w: 2.00, d: 1.20 },
+      8: { l: 6.50, w: 6.50, d: 2.60 },
+      9: { l: 7.00, w: 5.00, d: 3.25 },
+      10: { l: 6.00, w: 5.00, d: 3.20 },
+      11: { l: 10.00, w: 5.00, d: 3.05 },
+      12: { l: 8.00, w: 5.00, d: 3.05 }
   };
   function rt1() {
     $("#diamcut1").off("input").on("input", function () {
@@ -233,13 +248,18 @@
     });
   }
   function showform() {
-    var e = document.getElementById("diaform"),
-      t = document.getElementById("diaform").options.selectedIndex,
-      n = document.getElementById("diaform").options[t].text;
-    ($("#sind").html(n),
-      0 == e.selectedIndex
-        ? ($("#hdel1").show(), $("#hdel").hide(), $("#lndiam").hide(), rt1())
-        : ($("#hdel").show(), $("#hdel1").hide(), $("#lndiam").show(), rt2()));
+    var e = document.getElementById("diaform");
+    var shapeId = parseInt(e.value);
+    if (shapeDefaults[shapeId]) {
+        var def = shapeDefaults[shapeId];
+        $("#diamcut1").val(def.l.toFixed(2));
+        $("#diamcut").val(def.l.toFixed(2));
+        $("#widecut").val(def.w.toFixed(2));
+        $("#heightcut").val(def.d.toFixed(2));
+    }
+    0 == e.selectedIndex
+      ? ($("#hdel1").show(), $("#hdel").hide(), $("#lndiam").hide(), rt1())
+      : ($("#hdel").show(), $("#hdel1").hide(), $("#lndiam").show(), rt2());
   }
   function dwcreset() {
     ((document.getElementById("dperc").innerHTML = "60"),

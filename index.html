@@ -905,7 +905,10 @@
     const resultDiv = document.getElementById('price-result');
     
     const shapeIdx = document.getElementById("diaform").value;
-    const shape = shapeMap[shapeIdx] || 'Round';
+    let shape = shapeMap[shapeIdx] || 'Round';
+
+    // API only supports Round and Pear. Use Pear for all fancy shapes.
+    if (shape !== 'Round') shape = 'Pear';
 
     var resText = document.getElementById("results").innerText;
     var weight = 0;

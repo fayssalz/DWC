@@ -253,6 +253,19 @@
                     <option value="K">K</option>
                     <option value="L">L</option>
                     <option value="M">M</option>
+                    <option value="N">N</option>
+                    <option value="O">O</option>
+                    <option value="P">P</option>
+                    <option value="Q">Q</option>
+                    <option value="R">R</option>
+                    <option value="S">S</option>
+                    <option value="T">T</option>
+                    <option value="U">U</option>
+                    <option value="V">V</option>
+                    <option value="W">W</option>
+                    <option value="X">X</option>
+                    <option value="Y">Y</option>
+                    <option value="Z">Z</option>
                 </select>
             </div>
             <div class="form-group">
@@ -275,8 +288,9 @@
             <div class="form-group">
                 <label for="cut">Cut Grade</label>
                 <select id="cut" onchange="debouncedCalculatePrice()">
-                    <option value="Excellent">Excellent</option>
-                    <option value="Very Good">Very Good</option>
+                    <option value="Ideal">Ideal</option>
+                    <option value="Excellent" selected>Excellent</option>
+                    <option value="Very Good" >Very Good</option>
                     <option value="Good">Good</option>
                     <option value="Fair">Fair</option>
                     <option value="Poor">Poor</option>
@@ -409,6 +423,134 @@
   };
   
   const shapeMap = { 1: 'Round', 2: 'Oval', 3: 'Princess', 4: 'Asscher', 5: 'Cushion', 6: 'Heart', 7: 'Baguette', 8: 'Trillion', 9: 'Emerald', 10: 'Radiant', 11: 'Marquise', 12: 'Pear' };
+
+  const cutAdjustments = {
+      'Ideal': 1.06,       // Avg of +5% to +7%
+      'Excellent': 1.0,    // As shown
+      'Very Good': 0.925,  // Avg of -5% to -10%
+      'Good': 0.84,        // Avg of -12% to -20%
+      'Fair': 0.775,       // Avg of -15% to -30%
+      'Poor': 0.675,       // Avg of -25% to -40%
+  };
+
+  const fancyShapeAdjustments = {
+    // shape: [ [weight_range_end, adjustment_percentage], ... ]
+    'Cushion':  [ [0.99, -0.04], [1.49, -0.05], [1.99, -0.05], [5.99, -0.06] ],
+    'Oval':     [ [0.99, -0.02], [1.49, -0.01], [1.99, -0.02], [5.99,  0.03] ],
+    'Heart':    [ [0.99, -0.03], [1.49, -0.06], [1.99, -0.11], [5.99, -0.13] ],
+    'Marquise': [ [0.99,  0.02], [1.49,  0.02], [1.99,  0.05], [5.99,  0.07] ],
+    'Emerald':  [ [0.99, -0.15], [1.49, -0.16], [1.99, -0.16], [5.99, -0.15] ],
+    'Princess': [ [0.99, -0.16], [1.49, -0.18], [1.99, -0.17], [5.99, -0.15] ],
+    'Radiant':  [ [0.99, -0.13], [1.49, -0.13], [1.99, -0.12], [5.99, -0.12] ]
+  };
+
+  function getFancyShapeAdjustment(shape, weight) {
+      const adjustments = fancyShapeAdjustments[shape];
+      if (!adjustments) return 0;
+
+      for (const [maxWeight, adjustment] of adjustments) {
+          if (weight <= maxWeight) {
+              return adjustment;
+          }
+      }
+      // If weight is > 5.99 (the last maxWeight), use the last bracket's adjustment.
+      if (adjustments.length > 0) {
+          return adjustments[adjustments.length - 1][1];
+      }
+      return 0;
+  }
+
+  const lowColorConfig = {
+      'N-R': { start: 0.05, end: 0.15, letters: ['N', 'O', 'P', 'Q', 'R'] },
+      'S-Z': { start: 0.15, end: 0.25, letters: ['S', 'T', 'U', 'V', 'W', 'X', 'Y', 'Z'] }
+  };
+
+  const fluorescenceTable = [
+    {
+      min: 0.20, max: 0.49,
+      data: {
+        'D-F': {
+          'IF-VVS2': { 'Faint': 0.12, 'Medium': 0.18, 'Strong': 0.22, 'Very Strong': 0.26 },
+          'VS1-VS2': { 'Faint': 0.07, 'Medium': 0.13, 'Strong': 0.16, 'Very Strong': 0.19 },
+          'SI1-SI2': { 'Faint': 0.05, 'Medium': 0.09, 'Strong': 0.13, 'Very Strong': 0.17 }
+        },
+        'G-H': {
+          'IF-VVS2': { 'Faint': 0.09, 'Medium': 0.14, 'Strong': 0.17, 'Very Strong': 0.20 },
+          'VS1-VS2': { 'Faint': 0.07, 'Medium': 0.11, 'Strong': 0.13, 'Very Strong': 0.15 },
+          'SI1-SI2': { 'Faint': 0.04, 'Medium': 0.07, 'Strong': 0.10, 'Very Strong': 0.13 }
+        },
+        'I-K': {
+          'IF-VVS2': { 'Faint': 0.03, 'Medium': 0.06, 'Strong': 0.09, 'Very Strong': 0.12 },
+          'VS1-VS2': { 'Faint': 0.03, 'Medium': 0.05, 'Strong': 0.09, 'Very Strong': 0.13 },
+          'SI1-SI2': { 'Faint': 0.02, 'Medium': 0.05, 'Strong': 0.08, 'Very Strong': 0.11 }
+        }
+      }
+    },
+    {
+      min: 0.50, max: 0.99,
+      data: {
+        'D-F': {
+          'IF-VVS2': { 'Faint': 0.14, 'Medium': 0.21, 'Strong': 0.26, 'Very Strong': 0.31 },
+          'VS1-VS2': { 'Faint': 0.10, 'Medium': 0.16, 'Strong': 0.22, 'Very Strong': 0.28 },
+          'SI1-SI2': { 'Faint': 0.07, 'Medium': 0.12, 'Strong': 0.16, 'Very Strong': 0.20 }
+        },
+        'G-H': {
+          'IF-VVS2': { 'Faint': 0.10, 'Medium': 0.15, 'Strong': 0.19, 'Very Strong': 0.23 },
+          'VS1-VS2': { 'Faint': 0.08, 'Medium': 0.12, 'Strong': 0.16, 'Very Strong': 0.20 },
+          'SI1-SI2': { 'Faint': 0.06, 'Medium': 0.09, 'Strong': 0.12, 'Very Strong': 0.15 }
+        },
+        'I-K': {
+          'IF-VVS2': { 'Faint': 0.05, 'Medium': 0.09, 'Strong': 0.13, 'Very Strong': 0.17 },
+          'VS1-VS2': { 'Faint': 0.04, 'Medium': 0.07, 'Strong': 0.10, 'Very Strong': 0.13 },
+          'SI1-SI2': { 'Faint': 0.03, 'Medium': 0.06, 'Strong': 0.09, 'Very Strong': 0.12 }
+        }
+      }
+    },
+    {
+      min: 1.00, max: 20.99,
+      data: {
+        'D-F': {
+          'IF-VVS2': { 'Faint': 0.15, 'Medium': 0.22, 'Strong': 0.28, 'Very Strong': 0.34 },
+          'VS1-VS2': { 'Faint': 0.10, 'Medium': 0.17, 'Strong': 0.25, 'Very Strong': 0.33 },
+          'SI1-SI2': { 'Faint': 0.08, 'Medium': 0.13, 'Strong': 0.19, 'Very Strong': 0.25 }
+        },
+        'G-H': {
+          'IF-VVS2': { 'Faint': 0.10, 'Medium': 0.15, 'Strong': 0.20, 'Very Strong': 0.25 },
+          'VS1-VS2': { 'Faint': 0.07, 'Medium': 0.13, 'Strong': 0.18, 'Very Strong': 0.23 },
+          'SI1-SI2': { 'Faint': 0.06, 'Medium': 0.11, 'Strong': 0.15, 'Very Strong': 0.19 }
+        },
+        'I-K': {
+          'IF-VVS2': { 'Faint': 0.05, 'Medium': 0.10, 'Strong': 0.15, 'Very Strong': 0.20 },
+          'VS1-VS2': { 'Faint': 0.05, 'Medium': 0.08, 'Strong': 0.12, 'Very Strong': 0.16 },
+          'SI1-SI2': { 'Faint': 0.04, 'Medium': 0.07, 'Strong': 0.10, 'Very Strong': 0.13 }
+        }
+      }
+    }
+  ];
+
+  function getFluorescenceDiscount(weight, color, clarity, fluorescence) {
+      if (fluorescence === 'None') return 0;
+
+      // Map Color
+      let colorKey = null;
+      if (['D','E','F'].includes(color)) colorKey = 'D-F';
+      else if (['G','H'].includes(color)) colorKey = 'G-H';
+      else if (['I','J','K','L','M'].includes(color)) colorKey = 'I-K';
+      
+      // Map Clarity
+      let clarityKey = null;
+      if (['IF','VVS1','VVS2'].includes(clarity)) clarityKey = 'IF-VVS2';
+      else if (['VS1','VS2'].includes(clarity)) clarityKey = 'VS1-VS2';
+      else if (['SI1','SI2','I1','I2','I3'].includes(clarity)) clarityKey = 'SI1-SI2';
+
+      if (!colorKey || !clarityKey) return 0;
+
+      const range = fluorescenceTable.find(r => weight >= r.min && weight <= r.max);
+      if (!range) return 0; 
+
+      const discounts = range.data[colorKey][clarityKey];
+      return discounts[fluorescence] || 0;
+  }
 
   const priceCache = {};
   let currentDiscountedPricePerCt = 0;
@@ -905,12 +1047,13 @@
     const resultDiv = document.getElementById('price-result');
     
     const shapeIdx = document.getElementById("diaform").value;
-    let shape = shapeMap[shapeIdx] || 'Round';
+    const actualShape = shapeMap[shapeIdx] || 'Round';
+    let apiShape = actualShape;
 
     // API only supports Round and Pear. Use Pear for all fancy shapes.
-    if (shape !== 'Round') shape = 'Pear';
+    if (apiShape !== 'Round') apiShape = 'Pear';
 
-    var resText = document.getElementById("results").innerText;
+    const resText = document.getElementById("results").innerText;
     var weight = 0;
     var matches = resText.match(/approximately\s+([\d\.]+)(\s+.\s+([\d\.]+))?/);
     if (matches) {
@@ -934,7 +1077,7 @@
     resultDiv.style.color = '#666';
     resultDiv.style.backgroundColor = '#cce5ff';
 
-    let prices = priceCache[shape];
+    let prices = priceCache[apiShape];
 
     const apiUser = localStorage.getItem('rapnet_username');
     const apiPass = localStorage.getItem('rapnet_password');
@@ -955,7 +1098,7 @@
                     "password": apiPass
                 },
                 "body": {
-                    "shape": shape
+                    "shape": apiShape
                 }
             }
         };
@@ -972,7 +1115,7 @@
             
             if (data.response && data.response.body && data.response.body.price) {
                 prices = data.response.body.price;
-                priceCache[shape] = prices;
+                priceCache[apiShape] = prices;
             } else {
                 throw new Error("Unexpected response format");
             }
@@ -988,35 +1131,46 @@
             // Round weight to 2 decimal places for lookup to handle 3rd decimal place issues (e.g. 0.994 vs 0.99 max)
             const lookupWeight = Math.round(weight * 100) / 100;
 
+            let searchColor = color;
+            let lowColorDiscount = 0;
+            
+            if (['N','O','P','Q','R','S','T','U','V','W','X','Y','Z'].includes(color)) {
+                searchColor = 'M';
+                for (const key in lowColorConfig) {
+                    const conf = lowColorConfig[key];
+                    const idx = conf.letters.indexOf(color);
+                    if (idx !== -1) {
+                        const steps = conf.letters.length - 1;
+                        const stepSize = (conf.end - conf.start) / steps;
+                        lowColorDiscount = conf.start + (idx * stepSize);
+                        break;
+                    }
+                }
+            }
+
             const match = prices.find(p => 
-                p.shape.toLowerCase() === shape.toLowerCase() &&
-                p.color.toLowerCase() === color.toLowerCase() &&
+                p.shape.toLowerCase() === apiShape.toLowerCase() &&
+                p.color.toLowerCase() === searchColor.toLowerCase() &&
                 p.clarity.toLowerCase() === clarity.toLowerCase() &&
                 lookupWeight >= p.low_size && lookupWeight <= p.high_size
             );
 
             if (match) {
                 // --- PRICING LOGIC ---
-                let cutMultiplier = 1.0;
-                switch (cut) {
-                    case 'Excellent': cutMultiplier = 1.02; break;
-                    case 'Very Good': cutMultiplier = 1.0; break;
-                    case 'Good':      cutMultiplier = 0.85; break;
-                    case 'Fair':      cutMultiplier = 0.75; break;
-                    case 'Poor':      cutMultiplier = 0.65; break;
-                }
+                const basePricePerCarat = match.caratprice;
+                const cutMultiplier = cutAdjustments[cut] || 1.0;
 
-                let fluoMultiplier = 1.0;
-                switch (fluorescence) {
-                    case 'None':        fluoMultiplier = 1.0; break;
-                    case 'Faint':       fluoMultiplier = 0.95; break; // -5%
-                    case 'Medium':      fluoMultiplier = 0.875; break; // -12.5%
-                    case 'Strong':      fluoMultiplier = 0.80; break; // -20%
-                    case 'Very Strong': fluoMultiplier = 0.75; break; // -25%
+                let fancyShapeAdjustment = 0;
+                if (actualShape !== 'Round') {
+                    fancyShapeAdjustment = getFancyShapeAdjustment(actualShape, weight);
                 }
+                const fancyShapeMultiplier = 1.0 + fancyShapeAdjustment;
 
-                const basePricePerCarat = match.caratprice; 
-                const adjustedListPricePerCarat = basePricePerCarat * cutMultiplier * fluoMultiplier;
+                const fluoDiscount = getFluorescenceDiscount(lookupWeight, color, clarity, fluorescence);
+                const fluoMultiplier = 1.0 - fluoDiscount;
+
+                const colorMultiplier = 1.0 - lowColorDiscount;
+                const adjustedListPricePerCarat = basePricePerCarat * colorMultiplier * fancyShapeMultiplier * cutMultiplier * fluoMultiplier;
                 const adjustedListTotal = adjustedListPricePerCarat * weight;
                 
                 const discountFactor = (100 - discount) / 100;
@@ -1040,12 +1194,31 @@
                 let htmlContent = `
                     <div style="text-align: left; font-size: 0.95em;">
                         <div style="margin-bottom: 10px; padding-bottom: 10px; border-bottom: 1px solid #ddd;">
-                            <div style="font-weight:bold; color:#555;">Adjusted List Price</div>
+                            <div style="font-weight:bold; color:#555;">Price Breakdown</div>
                             <div style="display:flex; justify-content:space-between;">
-                                <span>Per Ct:</span> <span>$${adjustedListPricePerCarat.toLocaleString(undefined, {minimumFractionDigits: 0, maximumFractionDigits: 0})}</span>
+                                <span>Base List / Ct:</span> <span>$${basePricePerCarat.toLocaleString(undefined, {minimumFractionDigits: 0, maximumFractionDigits: 0})}</span>
+                            </div>`;
+                if (lowColorDiscount > 0) {
+                    htmlContent += `
+                            <div style="display:flex; justify-content:space-between;">
+                                <span>&rdsh; Low Color (${color}):</span> <span style="color: red;">-${(lowColorDiscount * 100).toFixed(1)}%</span>
+                            </div>`;
+                }
+                if (actualShape !== 'Round') {
+                    htmlContent += `
+                            <div style="display:flex; justify-content:space-between;">
+                                <span>&rdsh; Shape (${actualShape}):</span> <span style="color: ${fancyShapeAdjustment >= 0 ? 'green' : 'red'};">${(fancyShapeAdjustment * 100).toFixed(1)}%</span>
+                            </div>`;
+                }
+                htmlContent += `
+                            <div style="display:flex; justify-content:space-between;">
+                                <span>&rdsh; Cut (${cut}):</span> <span style="color: ${cutMultiplier >= 1 ? 'green' : 'red'};">${((cutMultiplier - 1) * 100).toFixed(1)}%</span>
                             </div>
                             <div style="display:flex; justify-content:space-between;">
-                                <span>Total:</span> <span>$${adjustedListTotal.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}</span>
+                                <span>&rdsh; Fluorescence (${fluorescence}):</span> <span style="color: ${fluoMultiplier >= 1 ? 'green' : 'red'};">${((fluoMultiplier - 1) * 100).toFixed(1)}%</span>
+                            </div>
+                            <div style="display:flex; justify-content:space-between; font-weight:bold; margin-top:5px; border-top: 1px solid #eee; padding-top:5px;">
+                                <span>Adjusted List / Ct:</span> <span>$${adjustedListPricePerCarat.toLocaleString(undefined, {minimumFractionDigits: 0, maximumFractionDigits: 0})}</span>
                             </div>
                         </div>
                         <div>

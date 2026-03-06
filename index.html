@@ -23,7 +23,7 @@
   .btn-reset:hover { background-color: #c82333; }
   #diaimg { display: block; margin: 10px auto; max-height: 120px; }
   .input-group { display: flex; align-items: center; gap: 10px; }
-  .input-group input[type="number"] { flex: 1; }
+  .input-group input[type="number"] { flex: 1; min-width: 0; }
   .lever { flex: 1; -webkit-appearance: none; appearance: none; height: 8px; background: #e0e0e0; outline: none; border-radius: 4px; cursor: ew-resize; touch-action: none; }
   .lever::-webkit-slider-thumb { -webkit-appearance: none; appearance: none; width: 16px; height: 16px; background: #007bff; border-radius: 50%; cursor: ew-resize; transition: background .15s; }
   .lever::-webkit-slider-thumb:hover { background: #0056b3; }
@@ -167,7 +167,7 @@
         </div>
         <div style="text-align:center;">
             <button type="button" class="btn-calib-open" onclick="openCalibration()">Calibrate Screen Size</button>
-            <button type="button" class="btn-calib-open" onclick="$('#api-modal').css('display', 'flex')" style="margin-left:5px;">API Settings</button>
+            <button type="button" class="btn-calib-open" onclick="promptPasscode()" style="margin-left:5px;">Unlock Pricing</button>
         </div>
 
         <div class="form-row">
@@ -321,18 +321,18 @@
 
 <div id="api-modal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.85); z-index:2000; align-items:center; justify-content:center; flex-direction:column; color:#fff; text-align:center;">
     <div class="calib-controls" style="background:#fff; padding:20px; border-radius:10px; color:#333; width:90%; max-width:400px;">
-        <h3>RapNet API Credentials</h3>
-        <p style="font-size:0.9em; color:#666; margin-bottom:15px;">Enter your credentials to access pricing. Saved locally.</p>
+        <h3>XOR Encryption Setup</h3>
+        <p style="font-size:0.9em; color:#666; margin-bottom:15px;">Enter credentials to generate encrypted hex strings for your source code.</p>
         <div class="form-group" style="text-align:left;">
             <label for="api-username">Username</label>
-            <input type="text" id="api-username" placeholder="RapNet Username">
+            <input type="text" id="api-username" placeholder="Username">
         </div>
         <div class="form-group" style="text-align:left;">
             <label for="api-password">Password</label>
-            <input type="password" id="api-password" placeholder="RapNet Password">
+            <input type="password" id="api-password" placeholder="Password">
         </div>
         <div style="display:flex; gap:10px; margin-top:15px;">
-            <button type="button" class="btn-save" onclick="saveApiCredentials()">Save</button>
+            <button type="button" class="btn-save" onclick="saveApiCredentials()">Generate Hex</button>
             <button type="button" class="btn-reset" onclick="$('#api-modal').hide()" style="background:#6c757d;">Cancel</button>
         </div>
     </div>
@@ -1018,32 +1018,67 @@
   }
   $(document).on('input', '#calib-slider', updateCalibrationPreview);
 
-  function checkApiCredentials() {
-      const u = localStorage.getItem('rapnet_username');
-      const p = localStorage.getItem('rapnet_password');
-      if (u) $('#api-username').val(u);
-      if (p) $('#api-password').val(p);
-      
-      if (!u || !p) {
-          $('#api-modal').css('display', 'flex');
+  function xorHex(hex, key) {
+      let result = '';
+      for (let i = 0; i < hex.length; i += 2) {
+          let byte = parseInt(hex.substr(i, 2), 16);
+          let keyChar = key.charCodeAt((i / 2) % key.length);
+          result += String.fromCharCode(byte ^ keyChar);
+      }
+      return result;
+  }
+
+  function toHex(str, key) {
+      let result = '';
+      for (let i = 0; i < str.length; i++) {
+          let charCode = str.charCodeAt(i);
+          let keyChar = key.charCodeAt(i % key.length);
+          let hex = (charCode ^ keyChar).toString(16);
+          result += hex.padStart(2, '0');
+      }
+      return result;
+  }
+
+  let cachedPassphrase = sessionStorage.getItem('dwc_session_key');
+
+  function promptPasscode() {
+      const key = prompt("Enter decryption passcode:");
+      if (key) {
+          sessionStorage.setItem('dwc_session_key', key);
+          cachedPassphrase = key;
+          debouncedCalculatePrice();
       }
   }
+
+  function checkApiCredentials() {
+      // Hardcoded Hex values (Replace these with your actual hex strings)
+      const hexU = "131608020a090f0f1b1410001f1203571b0f1558150f131916581f09195c";
+      const hexP = "142a3f08103a2750";
+  }
+
   function saveApiCredentials() {
       const u = $('#api-username').val();
       const p = $('#api-password').val();
-      if(u && p) {
-          localStorage.setItem('rapnet_username', u);
-          localStorage.setItem('rapnet_password', p);
+      const key = prompt("Enter the passphrase to use for XOR encryption:");
+      if(u && p && key) {
+          const uHex = toHex(u, key);
+          const pHex = toHex(p, key);
+          console.log("Username Hex:", uHex);
+          console.log("Password Hex:", pHex);
+          alert("Hex strings generated in console. Update hexU and hexP in your script.\n\nUsername Hex: " + uHex);
+          sessionStorage.setItem('dwc_session_key', key);
+          cachedPassphrase = key;
           $('#api-modal').hide();
           debouncedCalculatePrice();
-      } else {
-          alert("Please enter both username and password");
       }
   }
 
-  (showform(), funcshowimg(), dwccalculate(), checkApiCredentials());
+  (showform(), funcshowimg(), dwccalculate());
 
   async function calculatePrice() {
+    const hexU = "131608020a090f0f1b1410001f1203571b0f1558150f131916581f09195c";
+    const hexP = "142a3f08103a2750";
+
     const resultDiv = document.getElementById('price-result');
     
     const shapeIdx = document.getElementById("diaform").value;
@@ -1079,16 +1114,16 @@
 
     let prices = priceCache[apiShape];
 
-    const apiUser = localStorage.getItem('rapnet_username');
-    const apiPass = localStorage.getItem('rapnet_password');
-
-    if (!apiUser || !apiPass) {
+    if (!hexU || !hexP || !cachedPassphrase) {
         resultDiv.style.display = 'block';
-        resultDiv.innerText = "API Credentials missing. Please configure them.";
+        resultDiv.innerText = "API Credentials missing or locked. Please configure or refresh.";
         resultDiv.style.color = '#721c24';
         resultDiv.style.backgroundColor = '#f8d7da';
         return;
     }
+
+    const apiUser = xorHex(hexU, cachedPassphrase);
+    const apiPass = xorHex(hexP, cachedPassphrase);
 
     if (!prices) {
         const payload = {
@@ -1259,6 +1294,73 @@
       var leverInterval;
       var $activeLever = null;
       var highPrecisionValue; // Variable to store the un-rounded value
+
+      // Pinch-to-Scale Logic
+      const svgContainer = document.getElementById('dia-svg-container');
+      let initialDist = 0;
+      let initialL = 0;
+      let initialW = 0;
+      let initialDX = 0;
+      let initialDY = 0;
+
+      svgContainer.addEventListener('touchstart', function(e) {
+          if (e.touches.length === 2) {
+              e.preventDefault();
+              const shape = parseInt($('#diaform').val());
+              initialDX = Math.abs(e.touches[0].clientX - e.touches[1].clientX);
+              initialDY = Math.abs(e.touches[0].clientY - e.touches[1].clientY);
+              initialDist = Math.hypot(initialDX, initialDY);
+              
+              if (shape === 1) {
+                  initialL = parseFloat($('#diamcut1').val()) || 0;
+              } else {
+                  initialL = parseFloat($('#diamcut').val()) || 0;
+                  initialW = parseFloat($('#widecut').val()) || 0;
+              }
+          }
+      }, { passive: false });
+
+      svgContainer.addEventListener('touchmove', function(e) {
+          if (e.touches.length === 2) {
+              e.preventDefault();
+              const shape = parseInt($('#diaform').val());
+              const currentDX = Math.abs(e.touches[0].clientX - e.touches[1].clientX);
+              const currentDY = Math.abs(e.touches[0].clientY - e.touches[1].clientY);
+              const currentDist = Math.hypot(currentDX, currentDY);
+
+              if (initialDist > 10) {
+                  if (shape === 1) {
+                      // Uniform scaling for Round
+                      const scale = currentDist / initialDist;
+                      const newVal = (initialL * scale).toFixed(2);
+                      $('#diamcut1').val(newVal).trigger('input');
+                  } else {
+                      // Independent scaling for Fancy shapes
+                      // Sensitivity threshold to prevent jitter
+                      if (initialDX > 20) {
+                          const scaleW = currentDX / initialDX;
+                          const newW = (initialW * scaleW).toFixed(2);
+                          $('#widecut').val(newW);
+                      }
+                      if (initialDY > 20) {
+                          const scaleL = currentDY / initialDY;
+                          const newL = (initialL * scaleL).toFixed(2);
+                          $('#diamcut').val(newL);
+                      }
+                      dwccalculate();
+                  }
+              }
+          }
+      }, { passive: false });
+
+      svgContainer.addEventListener('touchend', function(e) {
+          if (e.touches.length < 2) {
+              initialDist = 0;
+              // Sync depth for round if needed
+              if (parseInt($('#diaform').val()) === 1) rt1();
+              else rt2();
+          }
+      });
 
       // Add a handler for the length input to recalculate on any input
       $('#diamcut').on('input', dwccalculate);

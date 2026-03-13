@@ -1,0 +1,1410 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Diamond Weight Calculator</title>
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<style>
+  body { font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif; background-color: #f4f4f9; color: #333; display: flex; justify-content: center; padding: 20px; }
+  .calculator-container { background: #fff; padding: 30px; border-radius: 10px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); width: 100%; max-width: 500px; }
+  h2 { text-align: center; color: #444; margin-top: 0; }
+  .form-group { margin-bottom: 15px; }
+  label { display: block; margin-bottom: 5px; font-weight: 600; }
+  select, input { width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 5px; font-size: 16px; box-sizing: border-box; }
+  .results-box { background: #eef2f5; padding: 15px; border-radius: 5px; margin-top: 20px; text-align: center; }
+  #results { font-size: 1.1em; font-weight: bold; color: #2c3e50; margin-bottom: 10px; }
+  .meta-info { font-size: 0.9em; color: #666; display: flex; justify-content: space-between; }
+  .btn-group { display: flex; gap: 10px; margin-top: 20px; }
+  button { flex: 1; padding: 10px; border: none; border-radius: 5px; cursor: pointer; font-size: 16px; transition: background 0.3s; }
+  .btn-calc { background-color: #28a745; color: white; }
+  .btn-calc:hover { background-color: #218838; }
+  .btn-reset { background-color: #dc3545; color: white; }
+  .btn-reset:hover { background-color: #c82333; }
+  #diaimg { display: block; margin: 10px auto; max-height: 120px; }
+  .input-group { display: flex; align-items: center; gap: 10px; }
+  .input-group input[type="number"] { flex: 1; min-width: 0; }
+  .lever { flex: 1; -webkit-appearance: none; appearance: none; height: 8px; background: #e0e0e0; outline: none; border-radius: 4px; cursor: ew-resize; touch-action: none; }
+  .lever::-webkit-slider-thumb { -webkit-appearance: none; appearance: none; width: 16px; height: 16px; background: #007bff; border-radius: 50%; cursor: ew-resize; transition: background .15s; }
+  .lever::-webkit-slider-thumb:hover { background: #0056b3; }
+  .lever::-moz-range-thumb { width: 16px; height: 16px; background: #007bff; border-radius: 50%; cursor: ew-resize; border: none; transition: background .15s; }
+  .lever::-moz-range-thumb:hover { background: #0056b3; }
+  #dia-svg-container { min-height: 150px; display: flex; align-items: center; justify-content: center; }
+  .dia-svg { display: none; }
+  .dia-svg.active { display: block; }
+  /* Calibration Modal Styles */
+  #calib-modal { display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.85); z-index:2000; align-items:center; justify-content:center; flex-direction:column; color:#fff; text-align:center; }
+  #calib-card { background: #007bff; border-radius: 8px; margin: 20px auto; position: relative; box-shadow: 0 0 20px rgba(0,0,0,0.5); transition: width 0.1s, height 0.1s; }
+  #calib-card::after { content: "Credit Card"; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); font-weight: bold; font-size: 1.2em; color: rgba(255,255,255,0.5); white-space: nowrap; }
+  .calib-controls { width: 90%; max-width: 400px; background: #fff; padding: 20px; border-radius: 10px; color: #333; }
+  .btn-save { background: #28a745; color: white; width: 100%; padding: 10px; border: none; border-radius: 5px; font-size: 16px; margin-top: 15px; cursor: pointer; }
+  .btn-calib-open { background: #6c757d; color: white; font-size: 0.8em; padding: 5px 10px; margin-top: 5px; border: none; border-radius: 4px; cursor: pointer; }
+  .btn-fine { background: #e2e6ea; border: 1px solid #ced4da; color: #333; width: 40px; height: 40px; font-size: 1.2em; border-radius: 5px; cursor: pointer; display: flex; align-items: center; justify-content: center; }
+  .btn-fine:active { background-color: #dae0e5; }
+  #calib-ruler { background: #fff; border: 2px solid #333; margin: 20px auto; position: relative; box-shadow: 0 0 10px rgba(0,0,0,0.2); display: none; }
+  #calib-ruler::after { content: "50 mm"; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); font-weight: bold; color: #333; }
+  .mode-btn { padding: 5px 10px; font-size: 0.85em; border: 1px solid #ccc; background: #f8f9fa; cursor: pointer; border-radius: 4px; }
+  .mode-btn.active { background: #007bff; color: #fff; border-color: #007bff; }
+  .form-row { display: flex; gap: 15px; }
+  .form-row > .form-group { flex: 1; }
+</style>
+</head>
+<body>
+
+<div class="calculator-container">
+    <h2>Diamond Weight Calculator</h2>
+    <form name="dweightcalc" id="dweightcalc">
+        <div class="form-group">
+            <label for="diaform">Shape</label>
+            <select id="diaform" name="diaform" onchange="showform(); funcshowimg(); dwccalculate();">
+                <option value="1">Round</option>
+                <option value="2">Oval</option>
+                <option value="3">Princess</option>
+                <option value="4">Asscher</option>
+                <option value="5">Cushion</option>
+                <option value="6">Heart</option>
+                <option value="7">Baguette</option>
+                <option value="8">Trillion</option>
+                <option value="9">Emerald</option>
+                <option value="10">Radiant</option>
+                <option value="11">Marquise</option>
+                <option value="12">Pear</option>
+            </select>
+        </div>
+
+        <div id="dia-svg-container">
+            <!-- Round -->
+            <svg id="svg-1" class="dia-svg active" viewBox="0 0 144 144" preserveAspectRatio="none">
+                <circle cx="71.39" cy="70.58" r="54.88" style="fill:none;stroke:#231f20;stroke-miterlimit:10;vector-effect:non-scaling-stroke;"/>
+                <path d="M30.9 87.85S54.59 33.37 54 30.76c0 0 54.11 23 57.09 23 0 0-23.32 55.41-23 57.09.08-.05-54.21-23.37-57.19-23z" style="fill:none;stroke:#231f20;stroke-miterlimit:10;vector-effect:non-scaling-stroke;"/>
+                <path d="M30.9 53.52s42.35-14.92 57.27-23c0 0 17.92 48.51 23.14 57.28 0 0-52.24 19-57.09 23.14 0 .06-18.1-48.09-23.32-57.42z" style="fill:none;stroke:#231f20;stroke-miterlimit:10;vector-effect:non-scaling-stroke;"/>
+                <path d="M30.89 53.52l1.54-21.59 21.6-1.17L71.39 15.7l16.78 14.87 22.17 1.35.78 21.79 15.16 16.87-14.97 17.27-1.64 22.06-21.5.89-16.78 14.66-17.17-14.47-21.95-1.93-1.38-21.21-14.38-17.27 14.38-17.06zM49.57 20.21l4.46 10.55M88.17 30.57l4.41-10.63M111.12 53.71l10.87-4.42M111.31 87.85l10.55 4.34M88.17 110.8l4.37 10.44M54.22 110.99l-4.47 10.04M30.9 87.85l-10 4.26M30.9 53.52l-10.08-4.29" style="fill:none;stroke:#231f20;stroke-miterlimit:10;vector-effect:non-scaling-stroke;"/>
+            </svg>
+            <!-- Oval -->
+            <svg id="svg-2" class="dia-svg" viewBox="0 0 144 144" preserveAspectRatio="none">
+                <g>
+                    <ellipse cx="70.15" cy="65.19" rx="37.92" ry="57.56" style="fill:none;stroke:#000;stroke-miterlimit:10;vector-effect:non-scaling-stroke;"/>
+                    <path d="M32.23 65.19l14.44-15.91M46.66 81.15L32.23 65.19M93.86 48.23l14.21 16.96M93.6 80.95l14.47-15.76M35.2 42.83l11.47 6.45M54.71 12.61l7.98 14.61M77.55 27.06l8.89-13.86M93.86 48.23l11.64-3.9M93.6 80.95l11.54 6.47M77.8 102.6l9.63 13.82M62.49 102.6l-9.39 14M46.66 81.15l-11.8 5.11M46.67 49.28l9.73-7.73M93.86 48.23l-10.45-8.42M62.49 102.6l21.52-14.17M56.3 88.46l21.5 14.14M46.66 81.15l9.64 7.31M84.01 88.43l9.59-7.48M56.4 41.55l21.15-14.49M62.69 27.22l20.72 12.59M70.15 7.62S42 77.62 42.46 104.5M70.15 7.62s28.18 70 27.69 96.88M70.15 122.75S42 52.76 42.46 25.87M70.15 122.75s28.18-70 27.69-96.88M42.46 25.87l20.23 1.35M77.55 27.06l20.29-1.19M77.8 102.6l20.04 1.9M42.52 105.24l19.97-2.64" style="fill:none;stroke:#000;stroke-miterlimit:10;vector-effect:non-scaling-stroke;"/>
+                </g>
+            </svg>
+            <!-- Princess -->
+            <svg id="svg-3" class="dia-svg" viewBox="0 0 144 144" preserveAspectRatio="none">
+                <g>
+                    <path d="M19.88 19.32h104.25v104.25H19.88zM51.88 32.88h41.87M93.75 50.87V32.88M51.88 50.87V32.88M93.75 50.87h17.37M51.88 50.87h-19M32.88 50.87v43.27M51.88 94.14h-19M93.75 94.14h17.37M111.12 50.87v43.27M51.88 94.14v16.68M93.75 94.14v16.68M51.88 110.82h41.87M51.88 50.87l72.24-31.55M93.75 94.14l30.37-74.82M51.88 50.87l-32 72.7M93.75 94.14l-73.87 29.43M19.88 19.32l73.87 31.55M19.88 19.32l32 74.82M124.12 123.57L51.88 94.14M93.75 50.87l30.37 72.7" style="fill:none;stroke:#231f20;stroke-miterlimit:10;vector-effect:non-scaling-stroke;"/>
+                </g>
+            </svg>
+            <!-- Asscher -->
+            <svg id="svg-4" class="dia-svg" viewBox="0 0 144 144" preserveAspectRatio="none">
+                <g>
+                    <path d="M43.36 21.51h56.66l25.67 24.66v58.49l-26.08 25.09H43.36l-25.05-23.06V45.77l25.05-24.26z" style="fill:none;stroke:#231f20;stroke-miterlimit:10;vector-effect:non-scaling-stroke;"/>
+                    <path d="M47.7 30.93h47.61l21.58 20.43v48.45L94.97 120.6H47.7l-21.06-19.1V51.02L47.7 30.93z" style="fill:none;stroke:#231f20;stroke-miterlimit:10;vector-effect:non-scaling-stroke;"/>
+                    <path d="M51.49 38.2h39.99l18.12 17.19v40.79l-18.41 17.49h-39.7L33.81 97.59V55.11L51.49 38.2z" style="fill:none;stroke:#231f20;stroke-miterlimit:10;vector-effect:non-scaling-stroke;"/>
+                    <path d="M55.81 45.92h31.47l14.26 13.59v32.24l-14.49 13.82H55.81l-13.92-12.7V59.29l13.92-13.37z" style="fill:none;stroke:#231f20;stroke-miterlimit:10;vector-effect:non-scaling-stroke;"/>
+                    <path d="M18.31 45.77l23.58 13.52 13.92-13.37-12.45-24.41-25.05 24.26zM87.28 45.92l12.74-24.41 25.67 24.66-24.15 13.34-14.26-13.59zM18.31 106.69l23.58-13.82 13.92 12.7-12.45 24.18-25.05-23.06zM87.05 105.57l12.56 24.18 26.08-25.09-24.15-12.91-14.49 13.82zM26.77 50.83l21.56-19.9M33.71 54.8l17.93-16.74M91.23 37.92l18.37 17.02M95.31 30.93l21.58 20.43M90.93 113.67l18.67-17.32M95.06 121.04l21.83-21.23M48.33 120.77l-21.56-18.92M51.42 113.67L33.49 97.75" style="fill:none;stroke:#231f20;stroke-miterlimit:10;stroke-width:2px;vector-effect:non-scaling-stroke;"/>
+                </g>
+            </svg>
+            <!-- Cushion -->
+            <svg id="svg-5" class="dia-svg" viewBox="0 0 144 144" preserveAspectRatio="none">
+                <g>
+                    <rect x="18.21" y="17.62" width="106.36" height="105.67" rx="17.24" style="fill:none;stroke:#231f20;stroke-miterlimit:10;vector-effect:non-scaling-stroke;"/>
+                    <path d="M31.48 48.76L18.21 70.81l13.27 22.86 11.83-22.86-11.83-22.05zM112.74 48.35L99.47 70.4l13.27 22.86 11.83-22.86-11.83-22.05zM93.85 30.89L71.8 17.62 48.94 30.89 71.8 42.73l22.05-11.84zM93.85 111.46L71.8 98.2l-22.86 13.26L71.8 123.3l22.05-11.84zM31.48 48.76L27.94 25.7M48.94 30.89l-21-5.19M93.85 30.89l23.34-2.76M112.74 48.35l4.45-20.22M93.85 111.46l21.12 3.65M112.74 93.26l2.23 21.85M31.48 93.67l-6.29 18.64M48.94 111.46l-23.75.85M31.48 48.76l40.32-6.03M112.74 48.35L71.8 42.73M31.48 93.67L71.8 98.2M112.74 93.26L71.8 98.2M93.85 30.89l5.62 39.51M93.85 111.46l5.62-41.06M48.94 30.89L43.31 70.8M48.94 111.46L43.31 70.8" style="fill:none;stroke:#231f20;stroke-miterlimit:10;vector-effect:non-scaling-stroke;"/>
+                </g>
+            </svg>
+            <!-- Heart -->
+            <svg id="svg-6" class="dia-svg" viewBox="0 0 144 144" preserveAspectRatio="none">
+                <g>
+                    <path d="M127.7 60.69c-4.94 17-18.81 44.23-57.77 68.14C31 104.92 17.07 77.7 12.16 60.69A41.78 41.78 0 0116 28.11C35.88-6.17 69.93 30 69.93 30s34-36.19 53.9-1.91a42 42 0 013.87 32.6zM47.85 112.86l65.62-67.84M92.57 112.36L29.59 43.97M29.59 43.97L12.16 60.69M36.43 73.62L12.16 60.69M46.88 62.75L36.43 73.62M127.7 60.69l-14.23-15.67M103.56 74.03l24.14-13.34M95.53 63.56l8.03 10.47M36.43 73.62l-1.65 26.46M61.08 99.18l-26.3.9M36.43 73.62l22.95 2.7M61.08 99.18l-1.7-22.86M80.85 99.63l.56-21.46M103.56 74.03l-22.15 4.14M106.95 97.92l-3.39-23.89M80.85 99.63l26.1-1.71M61.08 99.18l8.85 29.65M80.85 99.63l-10.92 29.2M29.59 43.97l-8.72-22.6M113.47 45.02l5.29-23.89M46.88 62.75l-1.16-21.1M29.59 43.97l16.13-2.32M95.53 63.56L93.9 42.81M113.47 45.02L93.9 42.81M45.72 41.65l24.21-11.63M93.9 42.81L69.93 30.02M45.72 41.65l7.15-12.47M49.29 15.76l3.58 13.42M93.9 42.81l-5.74-13.16M93.9 14.59l-5.74 15.06M118.76 21.13l-30.6 8.52M20.87 21.37l32 7.81M88.16 29.65l-18.23.37M52.87 29.18l17.06.84M103.56 74.03l18.59.94M36.43 73.62l-18.06 2.7M113.47 45.02l15.89-6.55M29.59 43.97l-17.21-7.56" style="fill:none;stroke:#231f20;stroke-miterlimit:10;vector-effect:non-scaling-stroke;"/>
+                </g>
+            </svg>
+            <!-- Baguette -->
+            <svg id="svg-7" class="dia-svg" viewBox="0 0 144 144" preserveAspectRatio="none">
+                <g>
+                    <path d="M28.12 16.04 H112.18 V125.03 H28.12 Z" style="fill:none;stroke:#231f20;stroke-miterlimit:10;vector-effect:non-scaling-stroke;"/>
+                    <path d="M31.16 19.89 H108.68 V121.92 H31.16 Z" style="fill:none;stroke:#231f20;stroke-miterlimit:10;vector-effect:non-scaling-stroke;"/>
+                    <path d="M35.2 22.86 H105.45 V117 H35.2 Z" style="fill:none;stroke:#231f20;stroke-miterlimit:10;vector-effect:non-scaling-stroke;"/>
+                    <path d="M38.43 26.36 H102.22 V113.88 H38.43 Z" style="fill:none;stroke:#231f20;stroke-miterlimit:10;vector-effect:non-scaling-stroke;"/>
+                    <path d="M41.41 29.6 H98.92 V111.91 H41.41 Z" style="fill:none;stroke:#231f20;stroke-miterlimit:10;vector-effect:non-scaling-stroke;"/>
+                    <path d="M28.12 16.04 L41.41 29.6 M112.18 16.04 L98.92 29.6 M112.18 125.03 L98.92 111.91 M28.12 125.03 L41.41 111.91" style="fill:none;stroke:#231f20;stroke-miterlimit:10;vector-effect:non-scaling-stroke;"/>
+                </g>
+            </svg>
+            <!-- Trillion -->
+            <svg id="svg-8" class="dia-svg" viewBox="0 0 612 612" preserveAspectRatio="none">
+                <g transform="translate(0,612) scale(0.1,-0.1)" fill="#000000" stroke="none">
+                    <path d="M2958 5276 c-160 -144 -409 -418 -623 -686 -752 -939 -1323 -2062 -1654 -3254 -64 -229 -69 -257 -48 -274 38 -31 674 -152 1082 -206 502 -67 834 -89 1335 -89 733 -1 1382 66 2120 219 275 57 311 66 324 86 11 19 3 58 -75 333 -386 1372 -1105 2654 -2063 3679 -115 123 -279 276 -296 276 -5 0 -51 -38 -102 -84z m195 -168 c146 -245 367 -673 367 -708 0 -8 -31 -35 -68 -60 -36 -25 -140 -100 -229 -167 l-163 -122 -164 123 c-91 68 -194 143 -230 167 -36 24 -66 50 -66 58 -1 51 431 851 460 851 5 0 47 -64 93 -142z m-276 -15 c-93 -165 -173 -315 -247 -463 -51 -102 -94 -186 -95 -188 -6 -6 -145 91 -145 101 0 19 252 314 409 479 67 71 90 91 78 71z m538 -173 c152 -167 315 -362 315 -376 0 -11 -139 -109 -145 -102 -2 2 -44 85 -94 185 -49 100 -125 244 -167 320 -42 76 -79 143 -82 148 -11 21 65 -55 173 -175z m-982 -497 c37 -26 67 -51 67 -57 0 -6 -23 -63 -51 -127 l-51 -117 -76 -48 c-156 -99 -288 -209 -501 -418 -156 -152 -155 -154 -23 59 139 223 307 466 475 688 44 58 63 77 75 72 10 -3 47 -27 85 -52z m1414 -20 c152 -198 347 -481 484 -703 121 -196 122 -195 -37 -38 -201 198 -327 303 -489 407 l-80 52 -56 124 -57 125 77 54 c42 30 81 55 87 55 6 1 38 -34 71 -76z m-1147 -170 c187 -134 295 -217 295 -228 0 -5 -70 -76 -155 -156 -167 -158 -487 -490 -683 -709 -69 -77 -71 -92 30 215 79 242 205 578 297 793 77 180 78 182 90 175 6 -4 63 -44 126 -90z m934 -80 c90 -214 148 -362 228 -588 77 -217 161 -476 155 -481 -2 -2 -34 31 -72 74 -148 169 -502 536 -656 683 -90 85 -164 158 -164 164 0 11 128 111 305 236 68 49 125 89 126 89 1 0 36 -80 78 -177z m-1350 -318 c-70 -183 -238 -679 -274 -810 -21 -77 -27 -85 -164 -250 -165 -199 -230 -279 -350 -432 -48 -62 -90 -113 -93 -113 -8 0 5 388 17 514 18 177 52 400 66 426 45 86 362 432 524 574 141 124 328 269 337 262 1 -1 -27 -78 -63 -171z m1726 -4 c139 -113 380 -356 511 -516 58 -72 111 -139 116 -150 13 -25 39 -194 58 -380 16 -151 32 -555 22 -555 -3 0 -36 39 -74 88 -100 129 -261 328 -394 487 -111 133 -118 145 -139 220 -55 197 -228 697 -336 970 -10 24 85 -41 236 -164z m-709 -98 c229 -224 508 -519 683 -721 l89 -103 34 -117 c75 -261 264 -1075 252 -1086 -9 -7 -426 -108 -582 -141 -284 -60 -637 -117 -717 -117 -81 0 -452 61 -720 118 -208 44 -563 133 -573 143 -22 22 244 1139 287 1206 15 23 246 285 344 390 115 124 652 655 661 655 5 0 114 -102 242 -227z m-1946 -969 c-10 -93 -18 -273 -18 -399 l-2 -230 -83 -113 c-45 -61 -87 -112 -91 -112 -8 0 -50 17 -148 61 -24 11 -43 26 -43 34 0 53 381 947 397 931 2 -2 -3 -80 -12 -172z m3614 -294 c113 -263 185 -455 179 -472 -7 -16 -184 -92 -197 -84 -6 4 -45 54 -88 113 l-78 106 -2 231 c0 127 -6 281 -12 341 -6 61 -13 139 -16 175 l-5 65 66 -135 c36 -74 105 -227 153 -340z m-3081 118 c-48 -184 -142 -592 -175 -765 -11 -57 -23 -93 -30 -93 -21 0 -424 137 -435 148 -7 7 16 46 77 129 195 262 594 763 609 763 1 0 -19 -82 -46 -182z m2542 -110 c259 -323 454 -588 442 -600 -11 -11 -414 -148 -435 -148 -8 0 -22 51 -40 143 -37 191 -117 535 -171 737 l-44 165 46 -50 c25 -27 116 -139 202 -247z m-3355 -608 c25 -10 45 -22 45 -24 0 -3 -37 -58 -83 -123 -46 -65 -127 -183 -181 -263 -55 -80 -103 -149 -107 -154 -19 -21 102 377 186 611 3 9 16 8 50 -7 25 -11 65 -29 90 -40z m4169 -125 c72 -220 135 -435 127 -435 -3 1 -44 58 -91 128 -47 69 -129 189 -183 265 -54 76 -96 142 -92 145 13 14 170 79 176 73 4 -3 32 -82 63 -176z m-3794 -12 c124 -41 226 -76 227 -77 2 -2 -66 -398 -70 -402 -1 -2 -189 -28 -417 -59 -228 -30 -428 -58 -444 -61 -22 -5 -27 -3 -20 7 20 35 277 416 342 509 119 168 122 172 141 165 9 -4 117 -40 241 -82z m3563 -29 c133 -187 379 -554 375 -563 -3 -7 -173 14 -683 85 -104 14 -191 27 -193 28 -7 8 -70 401 -64 404 52 21 470 159 477 158 6 -2 45 -52 88 -112z m-3028 -125 c194 -49 635 -141 743 -155 28 -3 52 -9 52 -13 0 -4 -98 -19 -217 -35 -120 -15 -366 -47 -548 -71 -181 -24 -331 -43 -332 -41 -3 3 55 345 62 365 3 8 12 10 23 6 9 -3 107 -29 217 -56z m2423 -126 c17 -103 30 -188 29 -189 -2 -2 -151 17 -332 41 -182 24 -428 56 -547 71 -120 15 -218 31 -218 34 0 4 37 12 83 19 212 32 906 187 926 207 19 19 30 -14 59 -183z m-829 -148 c271 -35 495 -66 498 -69 7 -6 -195 -112 -338 -177 -187 -85 -382 -155 -539 -195 l-139 -36 -128 32 c-151 38 -327 100 -510 180 -140 61 -387 189 -380 196 2 2 57 11 123 20 603 81 845 112 879 113 22 0 262 -28 534 -64z m-1563 -137 c172 -99 497 -246 699 -316 98 -34 -527 10 -982 69 -91 11 -93 12 -93 38 0 33 29 223 34 229 6 5 172 29 217 31 27 1 59 -12 125 -51z m2328 37 c54 -7 101 -16 103 -19 7 -7 38 -245 32 -250 -20 -20 -844 -96 -1029 -96 l-75 1 130 48 c202 74 527 230 650 310 36 24 61 24 189 6z m-2747 -57 c-4 -18 -11 -70 -18 -115 -10 -74 -14 -83 -33 -83 -35 0 -257 38 -486 82 -170 33 -209 44 -185 50 17 4 134 21 260 38 127 17 273 37 325 44 148 21 143 22 137 -16z m3273 -14 c146 -19 288 -38 315 -41 28 -3 56 -9 63 -13 16 -8 -117 -37 -387 -85 -264 -46 -311 -52 -311 -34 0 8 -7 59 -15 113 -8 55 -15 101 -15 103 0 2 19 2 43 -2 23 -3 161 -21 307 -41z"/>
+                </g>
+            </svg>
+            <!-- Emerald -->
+            <svg id="svg-9" class="dia-svg" viewBox="0 0 144 144" preserveAspectRatio="none">
+                <g>
+                    <path d="M43 16.04h53.57l15.61 13.55v83.18l-12.12 12.26H43l-14.88-13.88V31.48L43 16.04z" style="fill:none;stroke:#231f20;stroke-miterlimit:10;vector-effect:non-scaling-stroke;"/>
+                    <path d="M44.88 19.89h49.4l14.4 12.69v77.86l-11.17 11.48H44.88l-13.72-12.99V34.34l13.72-14.45z" style="fill:none;stroke:#231f20;stroke-miterlimit:10;vector-effect:non-scaling-stroke;"/>
+                    <path d="M47.63 22.86H92.4l13.05 11.89v72.92l-10.12 10.75h-47.7L35.2 106.25V36.4l12.43-13.54z" style="fill:none;stroke:#231f20;stroke-miterlimit:10;vector-effect:non-scaling-stroke;"/>
+                    <path d="M49.72 26.36h40.65l11.85 11.05v67.78l-9.19 10H49.72l-11.29-11.31V38.95l11.29-12.59z" style="fill:none;stroke:#231f20;stroke-miterlimit:10;vector-effect:non-scaling-stroke;"/>
+                    <path d="M31.16 34.34l13.72-14.45M35.2 36.4l12.43-13.54M94.28 19.89l14.4 12.69M92.4 22.86l13.05 11.89M35.2 106.25l12.43 12.17M31.16 108.93l13.72 12.99M95.33 118.42l10.12-10.75M97.51 121.92l11.17-11.48" style="fill:none;stroke:#231f20;stroke-miterlimit:10;stroke-width:2px;vector-effect:non-scaling-stroke;"/>
+                    <path d="M51.6 29.6h36.65l10.67 10.28v63.03l-8.28 9.29H51.6l-10.19-10.52V41.3L51.6 29.6z" style="fill:none;stroke:#231f20;stroke-miterlimit:10;vector-effect:non-scaling-stroke;"/>
+                    <path d="M43 16.04l8.6 13.56-10.19 11.7-13.29-9.82L43 16.04zM96.57 16.04L88.25 29.6l10.67 10.28 13.26-10.29-15.61-13.55zM90.64 112.2l9.42 12.83 12.12-12.26-13.26-9.86-8.28 9.29zM41.41 101.68l-13.29 9.47L43 125.03l8.6-12.83-10.19-10.52zM38.43 38.95l11.29-12.59M90.37 26.36l11.85 11.05M93.03 115.19l9.19-10M38.43 103.88l11.29 11.31" style="fill:none;stroke:#231f20;stroke-miterlimit:10;stroke-width:2px;vector-effect:non-scaling-stroke;"/>
+                </g>
+            </svg>
+            <!-- Radiant -->
+            <svg id="svg-10" class="dia-svg" viewBox="0 0 144 144" preserveAspectRatio="none">
+                <g>
+                    <path d="M39.11 12.34h57.32l12.12 12.77v89.11l-12.43 12.13H39.11l-11.5-12.13V24.8l11.5-12.46z" style="fill:none;stroke:#231f20;stroke-miterlimit:10;vector-effect:non-scaling-stroke;"/>
+                    <path d="M45.27 22.8h44.27l9.37 10.53v73.42l-9.61 10H45.27l-8.88-10V33.07l8.88-10.27zM27.61 24.8l8.78 8.27M39.11 12.34l6.16 10.46M96.43 12.34L89.54 22.8M108.55 25.12l-9.64 8.21M27.61 114.22l8.78-7.47M39.11 126.35l6.16-9.6M96.12 126.35l-6.82-9.6M108.55 114.22l-9.64-7.47M45.27 22.8l22.33 8.53M89.54 22.8L67.6 31.33M45.27 116.75l22.33-9.11M89.3 116.75l-21.7-9.11M45.27 116.75l3.74-11.72M36.39 106.75l12.62-1.72M89.3 116.75l-3.34-11.72M98.91 106.75l-12.95-1.72M89.54 22.8l-3.58 11.51M98.91 33.33l-12.95.98M36.39 33.07l12.62 1.53M45.27 22.8l3.74 11.8M49.01 34.6l18.59-3.27M85.96 34.31L67.6 31.33M49.01 105.03l18.59 2.61M85.96 105.03l-18.36 2.61M85.96 34.31l3.3 35.03M85.96 105.03l3.3-35.69M98.91 33.33l-9.65 36.01M98.91 106.75l-9.65-37.41M49.01 34.6l-3.32 35.17M49.01 105.03l-3.32-35.26M36.39 106.75l9.3-36.98M36.39 33.07l9.3 36.7" style="fill:none;stroke:#231f20;stroke-miterlimit:10;vector-effect:non-scaling-stroke;"/>
+                </g>
+            </svg>
+            <!-- Marquise -->
+            <svg id="svg-11" class="dia-svg" viewBox="0 0 144 144" preserveAspectRatio="none">
+                <g>
+                    <path d="M74 133.7C3.57 70 74 18.2 74 18.2s70.39 51.8 0 115.5zM42.69 75.95l31.29-34.67M105.27 75.95L73.98 41.28M73.98 107.98l31.29-32.03M42.69 75.95l31.29 32.03M73.98 41.28L84.3 27.74M63.38 28.04l10.6 13.24M73.98 107.98l-10.42 15.26M84.84 122.75l-10.86-14.77M73.98 133.7L50.14 46.66M73.98 133.7l22.2-90.02M73.98 18.2L50.7 105.27M73.98 18.2l24 85.69M50.14 46.66L69.35 35.5M96.18 43.68l-16.77-9.02M50.7 105.27l17.98 10.09M97.98 103.89l-19.25 10.55" style="fill:none;stroke:#231f20;stroke-miterlimit:10;vector-effect:non-scaling-stroke;"/>
+                </g>
+            </svg>
+            <!-- Pear -->
+            <svg id="svg-12" class="dia-svg" viewBox="0 0 144 144" preserveAspectRatio="none">
+                <g>
+                    <path d="M60.26 125.77c-61.88-23.56 10.3-108.49 10.3-108.49s72.2 84.93 10.3 108.49a28.9 28.9 0 01-20.6 0zM70.56 17.28l-27.89 96.74M70.57 17.28l27.89 96.74M58.43 33.57l47.51 56.49M82.7 33.57L35.2 90.06M63.97 40.15L47.64 51.4M77.22 40.15L93.55 51.4M46.82 52.95l15.41 57.61M94.41 52.95L79 110.56M62.23 110.56l8.34 17.11M79 110.56l-8.43 17.11M35.2 90.06l12.37 6.96M105.94 90.06l-12.51 6.53M79 110.56l8.55 12.16M62.23 110.56l-8.47 12.26M42.67 114.02l19.56-3.46M98.46 114.02L79 110.56M93.43 96.59l-11.74 3.94M47.57 97.02l11.38 3.67M79 110.56l-20.05-9.87M81.69 100.53l-19.46 10.03" style="fill:none;stroke:#231f20;stroke-miterlimit:10;vector-effect:non-scaling-stroke;"/>
+                </g>
+            </svg>
+        </div>
+        <div style="text-align:center;">
+            <button type="button" class="btn-calib-open" onclick="openCalibration()">Calibrate Screen Size</button>
+            <button type="button" class="btn-calib-open" onclick="promptPasscode()" style="margin-left:5px;">Unlock Pricing</button>
+        </div>
+
+        <div class="form-row">
+            <div class="form-group" id="hdel1">
+                <label for="diamcut1">Diameter (mm)</label>
+                <div class="input-group">
+                    <input type="number" id="diamcut1" value="6.50" step="0.01">
+                    <input type="range" class="lever" min="-100" max="100" value="0" data-target="diamcut1" title="Slide to adjust">
+                </div>
+            </div>
+            <div class="form-group" id="lndiam" style="display:none;">
+                <label for="diamcut">Length (mm)</label>
+                <div class="input-group">
+                    <input type="number" id="diamcut" value="6.50" step="0.01">
+                    <input type="range" class="lever" min="-100" max="100" value="0" data-target="diamcut" title="Slide to adjust">
+                </div>
+            </div>
+            <div class="form-group" id="hdel" style="display:none;">
+                <label for="widecut">Width (mm)</label>
+                <div class="input-group">
+                    <input type="number" id="widecut" value="6.50" step="0.01">
+                    <input type="range" class="lever" min="-100" max="100" value="0" data-target="widecut" title="Slide to adjust">
+                </div>
+            </div>
+        </div>
+
+        <div class="form-group" id="depth-group">
+            <label for="heightcut">Depth (mm)</label>
+            <input type="number" id="heightcut" value="3.90" step="0.01" onkeyup="dwccalculate()" onchange="dwccalculate()">
+        </div>
+
+        <div class="form-row">
+            <div class="form-group">
+                <label for="girth">Girdle Thickness</label>
+                <select id="girth" onchange="dwccalculate()">
+                    <option value="0">Thin - Medium</option>
+                    <option value="0.01">Slightly Thick</option>
+                    <option value="0.03">Thick</option>
+                    <option value="0.05">Very Thick</option>
+                    <option value="0.08">Extremely Thick</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label for="pavbul">Pavilion Bulge (%)</label>
+                <input type="number" id="pavbul" value="0" step="1" onkeyup="dwccalculate()" onchange="dwccalculate()">
+            </div>
+        </div>
+
+        <div class="results-box">
+            <div id="results">The diamond weights approximately 0.000 carats</div>
+            <div class="meta-info">
+                <span>Depth: <span id="dperc">60.00</span>%</span>
+                <span>L/W Ratio: <span id="lwratio">1.00 to 1</span></span>
+            </div>
+        </div>
+
+        <div id="melee-container" class="results-box" style="display: none; margin-top: 10px; background-color: #e6f7ff; text-align: left; padding: 10px 15px;">
+            <div id="melee-data-display"></div>
+            <div style="margin-top: 10px; border-top: 1px solid #b8daff; padding-top: 10px;">
+                <label style="font-size: 0.9em; font-weight: bold; display:block; margin-bottom:5px;">Parcel Price Calculator</label>
+                <div style="display: flex; gap: 10px; align-items: center;">
+                    <input type="number" id="parcel-weight" placeholder="Total Ct" step="0.01" style="width: 100px; padding: 5px;" oninput="updateParcelPrice()">
+                    <span id="parcel-price-result" style="font-weight: bold; color: #0056b3; font-size: 1.1em;">$0.00</span>
+                </div>
+            </div>
+        </div>
+
+    </form>
+
+    <div style="margin-top: 20px; border-top: 1px solid #eee; padding-top: 20px;">
+        <h3 style="text-align: center; color: #444; margin-top: 0;">Price Calculator</h3>
+        <div class="form-row">
+            <div class="form-group">
+                <label for="color">Color</label>
+                <select id="color" onchange="debouncedCalculatePrice()">
+                    <option value="D">D</option>
+                    <option value="E">E</option>
+                    <option value="F">F</option>
+                    <option value="G">G</option>
+                    <option value="H">H</option>
+                    <option value="I">I</option>
+                    <option value="J">J</option>
+                    <option value="K">K</option>
+                    <option value="L">L</option>
+                    <option value="M">M</option>
+                    <option value="N">N</option>
+                    <option value="O">O</option>
+                    <option value="P">P</option>
+                    <option value="Q">Q</option>
+                    <option value="R">R</option>
+                    <option value="S">S</option>
+                    <option value="T">T</option>
+                    <option value="U">U</option>
+                    <option value="V">V</option>
+                    <option value="W">W</option>
+                    <option value="X">X</option>
+                    <option value="Y">Y</option>
+                    <option value="Z">Z</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label for="clarity">Clarity</label>
+                <select id="clarity" onchange="debouncedCalculatePrice()">
+                    <option value="IF">IF</option>
+                    <option value="VVS1">VVS1</option>
+                    <option value="VVS2">VVS2</option>
+                    <option value="VS1">VS1</option>
+                    <option value="VS2">VS2</option>
+                    <option value="SI1">SI1</option>
+                    <option value="SI2">SI2</option>
+                    <option value="I1">I1</option>
+                    <option value="I2">I2</option>
+                    <option value="I3">I3</option>
+                </select>
+            </div>
+        </div>
+        <div class="form-row">
+            <div class="form-group">
+                <label for="cut">Cut Grade</label>
+                <select id="cut" onchange="debouncedCalculatePrice()">
+                    <option value="Ideal">Ideal</option>
+                    <option value="Excellent" selected>Excellent</option>
+                    <option value="Very Good" >Very Good</option>
+                    <option value="Good">Good</option>
+                    <option value="Fair">Fair</option>
+                    <option value="Poor">Poor</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label for="fluorescence">Fluorescence</label>
+                <select id="fluorescence" onchange="debouncedCalculatePrice()">
+                    <option value="None">None</option>
+                    <option value="Faint">Faint</option>
+                    <option value="Medium">Medium</option>
+                    <option value="Strong">Strong</option>
+                    <option value="Very Strong">Very Strong</option>
+                </select>
+            </div>
+        </div>
+        <div class="form-group" id="multi-stone-group" style="display:none;">
+            <label for="num-stones">Number of Stones</label>
+            <input type="number" id="num-stones" value="1" min="1" step="1" oninput="debouncedCalculatePrice()">
+        </div>
+        <div class="form-group">
+            <label for="discount">Discount (%)</label>
+            <input type="number" id="discount" value="35" step="0.1" oninput="debouncedCalculatePrice()">
+        </div>
+        <div id="price-result" class="results-box" style="display:none; margin-top:10px;"></div>
+    </div>
+</div>
+
+<div id="api-modal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.85); z-index:2000; align-items:center; justify-content:center; flex-direction:column; color:#fff; text-align:center;">
+    <div class="calib-controls" style="background:#fff; padding:20px; border-radius:10px; color:#333; width:90%; max-width:400px;">
+        <h3>XOR Encryption Setup</h3>
+        <p style="font-size:0.9em; color:#666; margin-bottom:15px;">Enter credentials to generate encrypted hex strings for your source code.</p>
+        <div class="form-group" style="text-align:left;">
+            <label for="api-username">Username</label>
+            <input type="text" id="api-username" placeholder="Username">
+        </div>
+        <div class="form-group" style="text-align:left;">
+            <label for="api-password">Password</label>
+            <input type="password" id="api-password" placeholder="Password">
+        </div>
+        <div style="display:flex; gap:10px; margin-top:15px;">
+            <button type="button" class="btn-save" onclick="saveApiCredentials()">Generate Hex</button>
+            <button type="button" class="btn-reset" onclick="$('#api-modal').hide()" style="background:#6c757d;">Cancel</button>
+        </div>
+    </div>
+</div>
+
+<div id="calib-modal">
+    <div class="calib-controls">
+        <h3>Screen Calibration</h3>
+        <div style="margin-bottom:10px;">
+            <button type="button" class="mode-btn active" onclick="setCalibMode('card')" id="btn-mode-card">Credit Card</button>
+            <button type="button" class="mode-btn" onclick="setCalibMode('ruler')" id="btn-mode-ruler">Ruler (50mm)</button>
+        </div>
+        <p id="calib-instr" style="font-size:0.9em; color:#666;">Place a standard credit card against the screen. Adjust until the width matches exactly.</p>
+        <div id="calib-card" style="width:85.6mm; height:53.98mm;"></div>
+        <div id="calib-ruler" style="width:50mm; height:15mm;"></div>
+        <label for="calib-slider" style="margin-top:10px;">Adjust Size:</label>
+        <div style="display:flex; align-items:center; gap:10px;">
+            <button type="button" class="btn-fine" onclick="adjustCalib(-0.002)">-</button>
+            <input type="range" id="calib-slider" min="0.5" max="3.0" step="0.001" style="flex:1;">
+            <button type="button" class="btn-fine" onclick="adjustCalib(0.002)">+</button>
+        </div>
+        <button type="button" class="btn-save" onclick="saveCalibration()">Save & Close</button>
+    </div>
+</div>
+
+<script>
+  const roundMeleeData = [
+      { min_mm: 0.90, max_mm: 1.10, carat: 0.005, cts_pcs: '1/200', sieve: '+000/-0' },
+      { min_mm: 1.10, max_mm: 1.15, carat: 0.006, cts_pcs: '1/175', sieve: '+0/-1' },
+      { min_mm: 1.15, max_mm: 1.20, carat: 0.007, cts_pcs: '1/150', sieve: '+1/-1.5' },
+      { min_mm: 1.20, max_mm: 1.25, carat: 0.008, cts_pcs: '1/120', sieve: '+1.5/-2' },
+      { min_mm: 1.25, max_mm: 1.30, carat: 0.009, cts_pcs: '1/100', sieve: '+2/-2.5' },
+      { min_mm: 1.30, max_mm: 1.35, carat: 0.01,  cts_pcs: '1/100', sieve: '+2.5/-3' },
+      { min_mm: 1.35, max_mm: 1.40, carat: 0.011, cts_pcs: '1/100', sieve: '+3/-3.5' },
+      { min_mm: 1.40, max_mm: 1.45, carat: 0.012, cts_pcs: '1/80',  sieve: '+3.5/-4' },
+      { min_mm: 1.45, max_mm: 1.50, carat: 0.013, cts_pcs: '1/80',  sieve: '+4/-4.5' },
+      { min_mm: 1.50, max_mm: 1.55, carat: 0.014, cts_pcs: '1/70',  sieve: '+4.5/-5' },
+      { min_mm: 1.55, max_mm: 1.60, carat: 0.016, cts_pcs: '1/60',  sieve: '+5/-5.5' },
+      { min_mm: 1.60, max_mm: 1.70, carat: 0.018, cts_pcs: '1/50',  sieve: '+5.5/-6' },
+      { min_mm: 1.70, max_mm: 1.80, carat: 0.021, cts_pcs: '1/50',  sieve: '+6/-6.5' },
+      { min_mm: 1.80, max_mm: 1.90, carat: 0.025, cts_pcs: '1/40',  sieve: '+6.5/-7' },
+      { min_mm: 1.90, max_mm: 2.00, carat: 0.029, cts_pcs: '1/30',  sieve: '+7/-7.5' },
+      { min_mm: 2.00, max_mm: 2.10, carat: 0.035, cts_pcs: '1/30',  sieve: '+7.5/-8' },
+      { min_mm: 2.10, max_mm: 2.20, carat: 0.039, cts_pcs: '1/25',  sieve: '+8/-8.5' },
+      { min_mm: 2.20, max_mm: 2.30, carat: 0.044, cts_pcs: '1/25',  sieve: '+8.5/-9' },
+      { min_mm: 2.30, max_mm: 2.40, carat: 0.052, cts_pcs: '1/20',  sieve: '+9/-9.5' },
+      { min_mm: 2.40, max_mm: 2.50, carat: 0.058, cts_pcs: '1/20',  sieve: '+9.5/-10' },
+      { min_mm: 2.50, max_mm: 2.60, carat: 0.069, cts_pcs: '1/15',  sieve: '+10/-10.5' },
+      { min_mm: 2.60, max_mm: 2.70, carat: 0.074, cts_pcs: '1/15',  sieve: '+10.5/-11' },
+      { min_mm: 2.70, max_mm: 2.80, carat: 0.078, cts_pcs: '1/12',  sieve: '+11/-11.5' },
+      { min_mm: 2.80, max_mm: 2.90, carat: 0.086, cts_pcs: '1/12',  sieve: '+11.5/-12' },
+      { min_mm: 2.90, max_mm: 3.00, carat: 0.095, cts_pcs: '1/10',  sieve: '+12/-12.5' },
+      { min_mm: 3.00, max_mm: 3.10, carat: 0.108, cts_pcs: '1/10',  sieve: '+12.5/-13' },
+      { min_mm: 3.10, max_mm: 3.20, carat: 0.116, cts_pcs: '1/8',   sieve: '+13/-13.5' },
+      { min_mm: 3.20, max_mm: 3.30, carat: 0.13,  cts_pcs: '1/8',   sieve: '+13.5/-14' },
+      { min_mm: 3.30, max_mm: 3.40, carat: 0.145, cts_pcs: '1/6',   sieve: '+14/-14.5' },
+      { min_mm: 3.40, max_mm: 3.50, carat: 0.155, cts_pcs: '1/6',   sieve: '+14.5/-15' },
+      { min_mm: 3.50, max_mm: 3.60, carat: 0.165, cts_pcs: '1/6',   sieve: '+15/-15.5' },
+      { min_mm: 3.60, max_mm: 3.70, carat: 0.19,  cts_pcs: '1/5',   sieve: '+15.5/-15.75' },
+      { min_mm: 3.70, max_mm: 3.80, carat: 0.20,  cts_pcs: '1/5',   sieve: '+15.75/-16.5' }
+  ];
+  const idealProportions = {
+      2: { depth: [58, 63], ratio: [[1.35, 1.50]] }, // Oval
+      3: { depth: [65, 73], ratio: [[0.95, 1.05]] }, // Princess
+      4: { depth: [63, 69], ratio: [[0.95, 1.05]] }, // Asscher
+      5: { depth: [62, 68], ratio: [[0.95, 1.05], [1.20, 1.25]] }, // Cushion
+      6: { depth: [51.9, 61], ratio: [[0.85, 1.05]] }, // Heart
+      7: { depth: [56.5, 65], ratio: [[3, 5]] }, // Baguette
+      8: { depth: [35, 48], ratio: [[0.95, 1.05]] }, // Trillion
+      9: { depth: [60, 68], ratio: [[0.95, 1.05], [1.35, 1.56]] }, // Emerald
+      10: { depth: [61, 67], ratio: [[1.00, 1.05], [1.20, 1.31]] }, // Radiant
+      11: { depth: [57.5, 64.5], ratio: [[1.70, 2.25]] }, // Marquise
+      12: { depth: [57.5, 65], ratio: [[1.40, 1.75]] }, // Pear
+  };
+  const shapeDefaults = {
+      1: { l: 6.50, w: 6.50, d: 3.90 },
+      2: { l: 8.00, w: 5.50, d: 3.41 },
+      3: { l: 5.50, w: 5.50, d: 3.85 },
+      4: { l: 5.50, w: 5.50, d: 3.63 },
+      5: { l: 6.00, w: 6.00, d: 3.90 },
+      6: { l: 6.00, w: 6.00, d: 3.54 },
+      7: { l: 6.00, w: 2.00, d: 1.20 },
+      8: { l: 6.50, w: 6.50, d: 2.60 },
+      9: { l: 7.00, w: 5.00, d: 3.25 },
+      10: { l: 6.00, w: 5.00, d: 3.20 },
+      11: { l: 10.00, w: 5.00, d: 3.05 },
+      12: { l: 8.00, w: 5.00, d: 3.05 }
+  };
+  
+  const shapeMap = { 1: 'Round', 2: 'Oval', 3: 'Princess', 4: 'Asscher', 5: 'Cushion', 6: 'Heart', 7: 'Baguette', 8: 'Trillion', 9: 'Emerald', 10: 'Radiant', 11: 'Marquise', 12: 'Pear' };
+
+  const cutAdjustments = {
+      'Ideal': 1.06,       // Avg of +5% to +7%
+      'Excellent': 1.0,    // As shown
+      'Very Good': 0.925,  // Avg of -5% to -10%
+      'Good': 0.84,        // Avg of -12% to -20%
+      'Fair': 0.775,       // Avg of -15% to -30%
+      'Poor': 0.675,       // Avg of -25% to -40%
+  };
+
+  const fancyShapeAdjustments = {
+    // shape: [ [weight_range_end, adjustment_percentage], ... ]
+    'Cushion':  [ [0.99, -0.04], [1.49, -0.05], [1.99, -0.05], [5.99, -0.06] ],
+    'Oval':     [ [0.99, -0.02], [1.49, -0.01], [1.99, -0.02], [5.99,  0.03] ],
+    'Heart':    [ [0.99, -0.03], [1.49, -0.06], [1.99, -0.11], [5.99, -0.13] ],
+    'Marquise': [ [0.99,  0.02], [1.49,  0.02], [1.99,  0.05], [5.99,  0.07] ],
+    'Emerald':  [ [0.99, -0.15], [1.49, -0.16], [1.99, -0.16], [5.99, -0.15] ],
+    'Princess': [ [0.99, -0.16], [1.49, -0.18], [1.99, -0.17], [5.99, -0.15] ],
+    'Radiant':  [ [0.99, -0.13], [1.49, -0.13], [1.99, -0.12], [5.99, -0.12] ]
+  };
+
+  function getFancyShapeAdjustment(shape, weight) {
+      const adjustments = fancyShapeAdjustments[shape];
+      if (!adjustments) return 0;
+
+      for (const [maxWeight, adjustment] of adjustments) {
+          if (weight <= maxWeight) {
+              return adjustment;
+          }
+      }
+      // If weight is > 5.99 (the last maxWeight), use the last bracket's adjustment.
+      if (adjustments.length > 0) {
+          return adjustments[adjustments.length - 1][1];
+      }
+      return 0;
+  }
+
+  const lowColorConfig = {
+      'N-R': { start: 0.05, end: 0.15, letters: ['N', 'O', 'P', 'Q', 'R'] },
+      'S-Z': { start: 0.15, end: 0.25, letters: ['S', 'T', 'U', 'V', 'W', 'X', 'Y', 'Z'] }
+  };
+
+  const fluorescenceTable = [
+    {
+      min: 0.20, max: 0.49,
+      data: {
+        'D-F': {
+          'IF-VVS2': { 'Faint': 0.12, 'Medium': 0.18, 'Strong': 0.22, 'Very Strong': 0.26 },
+          'VS1-VS2': { 'Faint': 0.07, 'Medium': 0.13, 'Strong': 0.16, 'Very Strong': 0.19 },
+          'SI1-SI2': { 'Faint': 0.05, 'Medium': 0.09, 'Strong': 0.13, 'Very Strong': 0.17 }
+        },
+        'G-H': {
+          'IF-VVS2': { 'Faint': 0.09, 'Medium': 0.14, 'Strong': 0.17, 'Very Strong': 0.20 },
+          'VS1-VS2': { 'Faint': 0.07, 'Medium': 0.11, 'Strong': 0.13, 'Very Strong': 0.15 },
+          'SI1-SI2': { 'Faint': 0.04, 'Medium': 0.07, 'Strong': 0.10, 'Very Strong': 0.13 }
+        },
+        'I-K': {
+          'IF-VVS2': { 'Faint': 0.03, 'Medium': 0.06, 'Strong': 0.09, 'Very Strong': 0.12 },
+          'VS1-VS2': { 'Faint': 0.03, 'Medium': 0.05, 'Strong': 0.09, 'Very Strong': 0.13 },
+          'SI1-SI2': { 'Faint': 0.02, 'Medium': 0.05, 'Strong': 0.08, 'Very Strong': 0.11 }
+        }
+      }
+    },
+    {
+      min: 0.50, max: 0.99,
+      data: {
+        'D-F': {
+          'IF-VVS2': { 'Faint': 0.14, 'Medium': 0.21, 'Strong': 0.26, 'Very Strong': 0.31 },
+          'VS1-VS2': { 'Faint': 0.10, 'Medium': 0.16, 'Strong': 0.22, 'Very Strong': 0.28 },
+          'SI1-SI2': { 'Faint': 0.07, 'Medium': 0.12, 'Strong': 0.16, 'Very Strong': 0.20 }
+        },
+        'G-H': {
+          'IF-VVS2': { 'Faint': 0.10, 'Medium': 0.15, 'Strong': 0.19, 'Very Strong': 0.23 },
+          'VS1-VS2': { 'Faint': 0.08, 'Medium': 0.12, 'Strong': 0.16, 'Very Strong': 0.20 },
+          'SI1-SI2': { 'Faint': 0.06, 'Medium': 0.09, 'Strong': 0.12, 'Very Strong': 0.15 }
+        },
+        'I-K': {
+          'IF-VVS2': { 'Faint': 0.05, 'Medium': 0.09, 'Strong': 0.13, 'Very Strong': 0.17 },
+          'VS1-VS2': { 'Faint': 0.04, 'Medium': 0.07, 'Strong': 0.10, 'Very Strong': 0.13 },
+          'SI1-SI2': { 'Faint': 0.03, 'Medium': 0.06, 'Strong': 0.09, 'Very Strong': 0.12 }
+        }
+      }
+    },
+    {
+      min: 1.00, max: 20.99,
+      data: {
+        'D-F': {
+          'IF-VVS2': { 'Faint': 0.15, 'Medium': 0.22, 'Strong': 0.28, 'Very Strong': 0.34 },
+          'VS1-VS2': { 'Faint': 0.10, 'Medium': 0.17, 'Strong': 0.25, 'Very Strong': 0.33 },
+          'SI1-SI2': { 'Faint': 0.08, 'Medium': 0.13, 'Strong': 0.19, 'Very Strong': 0.25 }
+        },
+        'G-H': {
+          'IF-VVS2': { 'Faint': 0.10, 'Medium': 0.15, 'Strong': 0.20, 'Very Strong': 0.25 },
+          'VS1-VS2': { 'Faint': 0.07, 'Medium': 0.13, 'Strong': 0.18, 'Very Strong': 0.23 },
+          'SI1-SI2': { 'Faint': 0.06, 'Medium': 0.11, 'Strong': 0.15, 'Very Strong': 0.19 }
+        },
+        'I-K': {
+          'IF-VVS2': { 'Faint': 0.05, 'Medium': 0.10, 'Strong': 0.15, 'Very Strong': 0.20 },
+          'VS1-VS2': { 'Faint': 0.05, 'Medium': 0.08, 'Strong': 0.12, 'Very Strong': 0.16 },
+          'SI1-SI2': { 'Faint': 0.04, 'Medium': 0.07, 'Strong': 0.10, 'Very Strong': 0.13 }
+        }
+      }
+    }
+  ];
+
+  function getFluorescenceDiscount(weight, color, clarity, fluorescence) {
+      if (fluorescence === 'None') return 0;
+
+      // Map Color
+      let colorKey = null;
+      if (['D','E','F'].includes(color)) colorKey = 'D-F';
+      else if (['G','H'].includes(color)) colorKey = 'G-H';
+      else if (['I','J','K','L','M'].includes(color)) colorKey = 'I-K';
+      
+      // Map Clarity
+      let clarityKey = null;
+      if (['IF','VVS1','VVS2'].includes(clarity)) clarityKey = 'IF-VVS2';
+      else if (['VS1','VS2'].includes(clarity)) clarityKey = 'VS1-VS2';
+      else if (['SI1','SI2','I1','I2','I3'].includes(clarity)) clarityKey = 'SI1-SI2';
+
+      if (!colorKey || !clarityKey) return 0;
+
+      const range = fluorescenceTable.find(r => weight >= r.min && weight <= r.max);
+      if (!range) return 0; 
+
+      const discounts = range.data[colorKey][clarityKey];
+      return discounts[fluorescence] || 0;
+  }
+
+  const priceCache = {};
+  let currentDiscountedPricePerCt = 0;
+
+  function updateParcelPrice() {
+      const weight = parseFloat(document.getElementById('parcel-weight').value) || 0;
+      const total = weight * currentDiscountedPricePerCt;
+      document.getElementById('parcel-price-result').innerText = '$' + total.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2});
+  }
+
+  function debounce(func, wait) {
+      let timeout;
+      return function(...args) {
+          const context = this;
+          clearTimeout(timeout);
+          timeout = setTimeout(() => func.apply(context, args), wait);
+      };
+  }
+  const debouncedCalculatePrice = debounce(calculatePrice, 50);
+
+  function rt1() {
+    $("#diamcut1").off("input").on("input", function () {
+      var e = $(this).val(),
+        t = (1 * e * 60) / 100;
+      $("#heightcut").val(t.toFixed(2));
+      dwccalculate();
+    });
+  }
+  function rt2() {
+    $("#widecut").off("input").on("input", function () {
+      var e = $(this).val(),
+        t = (1 * e * 60) / 100;
+      $("#heightcut").val(t.toFixed(2));
+      dwccalculate();
+    });
+  }
+  function showform() {
+    var e = document.getElementById("diaform");
+    var shapeId = parseInt(e.value);
+    if (shapeDefaults[shapeId]) {
+        var def = shapeDefaults[shapeId];
+        $("#diamcut1").val(def.l.toFixed(2));
+        $("#diamcut").val(def.l.toFixed(2));
+        $("#widecut").val(def.w.toFixed(2));
+        $("#heightcut").val(def.d.toFixed(2));
+    }
+    if (shapeId === 1) { // Round
+        $("#hdel1").show();
+        $("#lndiam").hide();
+        $("#hdel").hide();
+        $("#depth-group").appendTo("#hdel1"); // Move depth to be next to diameter
+        rt1();
+    } else { // Fancy
+        $("#hdel1").hide();
+        $("#lndiam").show();
+        $("#hdel").show();
+        $("#depth-group").insertAfter($("#lndiam").parent()); // Move depth below the dims row
+        rt2();
+    }
+  }
+  function dwcreset() {
+    ((document.getElementById("dperc").innerHTML = "60"),
+      (document.getElementById("lwratio").innerHTML = "1.00 to 1"),
+      (document.getElementById("results").innerHTML =
+        "The diamond weights approximately 3.660 carats"));
+  }
+
+  var calibrationScale = parseFloat(localStorage.getItem('dwc_scale')) || 1.525;
+
+  function updateSvgProportions() {
+    var shape = $('#diaform').val();
+    var length, width;
+    
+    // Get dimensions based on shape type
+    if (shape == 1) {
+        length = parseFloat($('#diamcut1').val()) || 0;
+        width = length;
+    } else {
+        length = parseFloat($('#diamcut').val()) || 0;
+        width = parseFloat($('#widecut').val()) || 0;
+    }
+
+    if (length <= 0 || width <= 0) return;
+
+    // New Logic for Wireframe SVGs:
+    // The SVGs are set to preserveAspectRatio="none" so they stretch to fill the container.
+    // We simply set the container size to the physical dimensions (scaled by calibration).
+    // The content inside the SVGs fills approximately 74% of the viewBox (e.g. 106px in 144px box).
+    // To make the visual drawing match the physical mm size, we scale the container up.
+    // Scale Factor = 1 / 0.74 ≈ 1.35
+    
+    var fillFactor = 0.74; 
+    var $svg = $('#svg-' + shape);
+
+    const fillFactors = {
+        7: { w: 0.584, h: 0.757 }, // Baguette
+        8: { w: 0.787, h: 0.741 }  // Trillion
+    };
+
+    var factors = fillFactors[shape] || { w: fillFactor, h: fillFactor };
+
+    $svg.css({ 
+        width: (width / factors.w * calibrationScale) + 'mm', 
+        height: (length / factors.h * calibrationScale) + 'mm' 
+    });
+  }
+  function dwccalculate() {
+    var r_lookup = 1 * document.getElementById("diaform").selectedIndex + 1;
+    if (r_lookup === 1) {
+        var m_lookup = 1 * document.getElementById("diamcut1").value;
+        var meleeInfo = roundMeleeData.find(d => m_lookup >= d.min_mm && m_lookup < d.max_mm);
+        if (meleeInfo) {
+            $('#melee-container').show();
+            $('#melee-data-display').html(
+                `<div style="font-weight: bold; margin-bottom: 5px;">Standard Melee Data (for ${m_lookup.toFixed(2)}mm)</div>` +
+                `<div style="display: flex; justify-content: space-between;"><span>Carat Weight:</span> <strong>${meleeInfo.carat} ct</strong></div>` +
+                `<div style="display: flex; justify-content: space-between;"><span>Pieces per Carat:</span> <strong>~${meleeInfo.cts_pcs.split('/')[1]}</strong></div>` +
+                `<div style="display: flex; justify-content: space-between;"><span>Sieve Size:</span> <strong>${meleeInfo.sieve}</strong></div>`
+            );
+        } else {
+            $('#melee-container').hide();
+        }
+    } else {
+        $('#melee-container').hide();
+    }
+
+
+    var e,
+      t,
+      n,
+      d = 1 * document.getElementById("girth").value,
+      i = (1 * document.getElementById("pavbul").value) / 100,
+      r = 1 * document.getElementById("diaform").selectedIndex + 1,
+      o = 1 * document.getElementById("heightcut").value,
+      a = 1 * document.getElementById("diamcut").value,
+      m = 1 * document.getElementById("diamcut1").value,
+      l = 1 * document.getElementById("widecut").value;
+    switch (r) {
+      case 1:
+        if (
+          ((t = ((100 * o) / m).toFixed(2)), (n = (m / m).toFixed(2)), m > 0.9)
+        ) {
+          if (o > 0) {
+            var s = m * m * o * 0.0061;
+            ((s = s * d + s * i + s),
+              (document.getElementById("results").innerHTML =
+                "The diamond weights approximately  " +
+                s.toFixed(3) +
+                " carats"));
+          } else {
+            var s = m * m * m * 0.6299 * 0.0061;
+            s = s * d + s * i + s;
+            var c = m * m * m * 0.583 * 0.0061;
+            ((c = c * d + c * i + c),
+              (hmax = 0.6299 * m),
+              (hmin = 0.583 * m),
+              (document.getElementById("results").innerHTML =
+                "The diamond weights approximately  " +
+                c.toFixed(3) +
+                " &ndash; " +
+                s.toFixed(3) +
+                " carats (height:" +
+                hmin.toFixed(2) +
+                " &ndash; " +
+                hmax.toFixed(2) +
+                " mm)."));
+          }
+          ((document.getElementById("dperc").innerHTML = t),
+            (document.getElementById("lwratio").innerHTML = n + " to 1"));
+        } else if (o > 0.3) {
+          var u = o / 0.583,
+            g = o / 0.6299,
+            s = Math.pow(u, 2) * o * 0.0061;
+          s = s * d + s * i + s;
+          var c = Math.pow(g, 2) * o * 0.0061;
+          ((c = c * d + c * i + c),
+            (document.getElementById("results").innerHTML =
+              "The diamond weights approximately " +
+              c.toFixed(3) +
+              " &ndash; " +
+              s.toFixed(3) +
+              " carats (diameter:" +
+              g.toFixed(2) +
+              " &ndash; " +
+              u.toFixed(2) +
+              " mm)."),
+            (document.getElementById("dperc").innerHTML = t),
+            (document.getElementById("lwratio").innerHTML = n + " to 1"));
+        } else
+          document.getElementById("results").innerHTML =
+            "Error: Not enough data";
+        break;
+      case 2:
+        if (
+          ((t = ((100 * o) / l).toFixed(2)),
+          (n = (a / l).toFixed(2)),
+          a > 0 && o > 0 && l > 0)
+        ) {
+          ((a += l), (a /= 2));
+          var h = Math.pow(a, 2) * o * 0.0062;
+          ((h = h * d + h * i + h),
+            (document.getElementById("results").innerHTML =
+              "The diamond weights approximately " + h.toFixed(3) + " carats"),
+            (document.getElementById("dperc").innerHTML = t),
+            (document.getElementById("lwratio").innerHTML = n + " to 1"));
+        } else
+          document.getElementById("results").innerHTML =
+            "Error: Not enough data";
+        break;
+      case 3:
+        if (
+          ((t = ((100 * o) / l).toFixed(2)),
+          (n = (a / l).toFixed(2)),
+          a > 0 && o > 0 && l > 0)
+        ) {
+          var h = o * a * l * 0.0083;
+          ((h = h * d + h * i + h),
+            (document.getElementById("results").innerHTML =
+              "The diamond weights approximately " + h.toFixed(3) + " carats"),
+            (document.getElementById("dperc").innerHTML = t),
+            (document.getElementById("lwratio").innerHTML = n + " to 1"));
+        } else
+          document.getElementById("results").innerHTML =
+            "Error: Not enough data";
+        break;
+      case 4:
+        if (
+          ((t = ((100 * o) / l).toFixed(2)),
+          (n = (a / l).toFixed(2)),
+          a > 0 && o > 0 && l > 0)
+        ) {
+          var h = o * a * l * 0.008;
+          ((h = h * d + h * i + h),
+            (document.getElementById("results").innerHTML =
+              "The diamond weights approximately " + h.toFixed(3) + " carats"),
+            (document.getElementById("dperc").innerHTML = t),
+            (document.getElementById("lwratio").innerHTML = n + " to 1"));
+        } else
+          document.getElementById("results").innerHTML =
+            "Error: Not enough data";
+        break;
+      case 5:
+        if (
+          ((t = ((100 * o) / l).toFixed(2)),
+          (n = (a / l).toFixed(2)),
+          a > 0 && o > 0 && l > 0)
+        ) {
+          var h = o * a * l * 0.00815;
+          ((h = h * d + h * i + h),
+            (document.getElementById("results").innerHTML =
+              "The diamond weights approximately " + h.toFixed(3) + " carats"),
+            (document.getElementById("dperc").innerHTML = t),
+            (document.getElementById("lwratio").innerHTML = n + " to 1"));
+        } else
+          document.getElementById("results").innerHTML =
+            "Error: Not enough data";
+        break;
+      case 6:
+        if (
+          ((t = ((100 * o) / l).toFixed(2)),
+          (n = (a / l).toFixed(2)),
+          a > 0 && o > 0 && l > 0)
+        ) {
+          var h = l * a * o * 0.0059;
+          ((h = h * d + h * i + h),
+            (document.getElementById("results").innerHTML =
+              "The diamond weights approximately " + h.toFixed(3) + " carats"),
+            (document.getElementById("dperc").innerHTML = t),
+            (document.getElementById("lwratio").innerHTML = n + " to 1"));
+        } else
+          document.getElementById("results").innerHTML =
+            "Error: Not enough data";
+        break;
+      case 7:
+        if (
+          ((t = ((100 * o) / l).toFixed(2)),
+          (n = (a / l).toFixed(2)),
+          a > 0 && o > 0 && l > 0)
+        ) {
+          var h = l * a * o * 0.00915;
+          ((h = h * d + h * i + h),
+            (document.getElementById("results").innerHTML =
+              "The diamond weights approximately " + h.toFixed(3) + " carats"),
+            (document.getElementById("dperc").innerHTML = t),
+            (document.getElementById("lwratio").innerHTML = n + " to 1"));
+        } else
+          document.getElementById("results").innerHTML =
+            "Error: Not enough data";
+        break;
+      case 8:
+        if (
+          ((t = ((100 * o) / l).toFixed(2)),
+          (n = (a / l).toFixed(2)),
+          a > 0 && o > 0 && l > 0)
+        ) {
+          var h = l * a * o * 0.0057;
+          ((h = h * d + h * i + h),
+            (document.getElementById("results").innerHTML =
+              "The diamond weights approximately " + h.toFixed(3) + " carats"),
+            (document.getElementById("dperc").innerHTML = t),
+            (document.getElementById("lwratio").innerHTML = n + " to 1"));
+        } else
+          document.getElementById("results").innerHTML =
+            "Error: Not enough data";
+        break;
+      case 9:
+        if (
+          ((t = ((100 * o) / l).toFixed(2)),
+          (n = (a / l).toFixed(2)),
+          a > 0 && o > 0 && l > 0)
+        ) {
+          if (((e = (a / l) * 1), (e = e.toFixed(2)), 1.5 >= e)) var y = 0.008;
+          if (2 > e && e >= 1.5) var y = 0.0092;
+          if (2.5 > e && e >= 2) var y = 0.01;
+          if (e >= 2.5) var y = 0.0106;
+          var h = l * a * o * y;
+          ((h = h * d + h * i + h),
+            (document.getElementById("results").innerHTML =
+              "The diamond weights approximately " + h.toFixed(3) + " carats"),
+            (document.getElementById("dperc").innerHTML = t),
+            (document.getElementById("lwratio").innerHTML = n + " to 1"));
+        } else
+          document.getElementById("results").innerHTML =
+            "Error: Not enough data";
+        break;
+      case 10:
+        if (
+          ((t = ((100 * o) / l).toFixed(2)),
+          (n = (a / l).toFixed(2)),
+          a > 0 && o > 0 && l > 0)
+        ) {
+          if (((e = (a / l) * 1), (e = e.toFixed(2)), 1.5 >= e)) var y = 0.0081;
+          if (e > 1.5) var y = 0.0084;
+          var h = l * a * o * y;
+          ((h = h * d + h * i + h),
+            (document.getElementById("results").innerHTML =
+              "The diamond weights approximately " + h.toFixed(3) + " carats"),
+            (document.getElementById("dperc").innerHTML = t),
+            (document.getElementById("lwratio").innerHTML = n + " to 1"));
+        } else
+          document.getElementById("results").innerHTML =
+            "Error: Not enough data";
+        break;
+      case 11:
+        if (
+          ((t = ((100 * o) / l).toFixed(2)),
+          (n = (a / l).toFixed(2)),
+          a > 0 && o > 0 && l > 0)
+        ) {
+          if (((e = (a / l) * 1), (e = e.toFixed(2)), 2 >= e)) var y = 0.00565;
+          if (2.5 > e && e >= 2) var y = 0.0058;
+          if (3 > e && e >= 2) var y = 0.00585;
+          if (e >= 3) var y = 0.00595;
+          var h = l * a * o * y;
+          ((h = h * d + h * i + h),
+            (document.getElementById("results").innerHTML =
+              "The diamond weights approximately " + h.toFixed(3) + " carats"),
+            (document.getElementById("dperc").innerHTML = t),
+            (document.getElementById("lwratio").innerHTML = n + " to 1"));
+        } else
+          document.getElementById("results").innerHTML =
+            "Error: Not enough data";
+        break;
+      case 12:
+        if (
+          ((t = ((100 * o) / l).toFixed(2)),
+          (n = (a / l).toFixed(2)),
+          a > 0 && o > 0 && l > 0)
+        ) {
+          if (((e = (a / l) * 1), (e = e.toFixed(2)), 1.25 >= e))
+            var y = 0.00615;
+          if (1.5 >= e && e > 1.25) var y = 0.006;
+          if (1.66 >= e && e > 1.5) var y = 0.0059;
+          if (e > 1.66) var y = 0.00575;
+          var h = l * a * o * y;
+          ((h = h * d + h * i + h),
+            (document.getElementById("results").innerHTML =
+              "The diamond weights approximately " + h.toFixed(3) + " carats"),
+            (document.getElementById("dperc").innerHTML = t),
+            (document.getElementById("lwratio").innerHTML = n + " to 1"));
+        } else
+          document.getElementById("results").innerHTML =
+            "Error: Not enough data";
+    }
+
+    // Check for Ideal Proportions and colorize
+    var depthElem = document.getElementById("dperc");
+    var ratioElem = document.getElementById("lwratio");
+    
+    // Reset styles
+    depthElem.style.color = "";
+    depthElem.style.fontWeight = "";
+    ratioElem.style.color = "";
+    ratioElem.style.fontWeight = "";
+
+    if (t && n && idealProportions[r]) {
+        var curDepth = parseFloat(t);
+        var curRatio = parseFloat(n);
+        var ideals = idealProportions[r];
+
+        if (curDepth >= ideals.depth[0] && curDepth <= ideals.depth[1]) {
+            depthElem.style.color = "#28a745";
+            depthElem.style.fontWeight = "bold";
+        }
+        
+        if (ideals.ratio.some(range => curRatio >= range[0] && curRatio <= range[1])) {
+            ratioElem.style.color = "#28a745";
+            ratioElem.style.fontWeight = "bold";
+        }
+    }
+
+    updateSvgProportions();
+
+    debouncedCalculatePrice();
+  }
+  function funcshowimg() {
+    var val = document.getElementById("diaform").value;
+    $('.dia-svg').removeClass('active');
+    $('#svg-' + val).addClass('active');
+  }
+
+  var currentCalibMode = 'card';
+
+  function openCalibration() {
+      $('#calib-modal').css('display', 'flex');
+      $('#calib-slider').val(calibrationScale);
+      setCalibMode(currentCalibMode);
+      updateCalibrationPreview();
+  }
+  
+  function setCalibMode(mode) {
+      currentCalibMode = mode;
+      $('.mode-btn').removeClass('active');
+      $('#btn-mode-' + mode).addClass('active');
+      
+      if (mode === 'card') {
+          $('#calib-card').show();
+          $('#calib-ruler').hide();
+          $('#calib-instr').text("Place a standard credit card against the screen. Adjust until the width matches exactly.");
+      } else {
+          $('#calib-card').hide();
+          $('#calib-ruler').show();
+          $('#calib-instr').text("Place a ruler against the screen. Adjust until the box width is exactly 50mm.");
+      }
+      updateCalibrationPreview();
+  }
+
+  function adjustCalib(delta) {
+      var val = parseFloat($('#calib-slider').val()) || 1;
+      val += delta;
+      $('#calib-slider').val(val);
+      updateCalibrationPreview();
+  }
+
+  function updateCalibrationPreview() {
+      var val = parseFloat($('#calib-slider').val());
+      $('#calib-card').css({ width: (85.60 * val) + 'mm', height: (53.98 * val) + 'mm' });
+      $('#calib-ruler').css({ width: (50.00 * val) + 'mm' });
+  }
+  function saveCalibration() {
+      calibrationScale = parseFloat($('#calib-slider').val());
+      localStorage.setItem('dwc_scale', calibrationScale);
+      $('#calib-modal').hide();
+      dwccalculate();
+  }
+  $(document).on('input', '#calib-slider', updateCalibrationPreview);
+
+  function xorHex(hex, key) {
+      let result = '';
+      for (let i = 0; i < hex.length; i += 2) {
+          let byte = parseInt(hex.substr(i, 2), 16);
+          let keyChar = key.charCodeAt((i / 2) % key.length);
+          result += String.fromCharCode(byte ^ keyChar);
+      }
+      return result;
+  }
+
+  function toHex(str, key) {
+      let result = '';
+      for (let i = 0; i < str.length; i++) {
+          let charCode = str.charCodeAt(i);
+          let keyChar = key.charCodeAt(i % key.length);
+          let hex = (charCode ^ keyChar).toString(16);
+          result += hex.padStart(2, '0');
+      }
+      return result;
+  }
+
+  let cachedPassphrase = sessionStorage.getItem('dwc_session_key');
+
+  function promptPasscode() {
+      const key = prompt("Enter decryption passcode:");
+      if (key) {
+          sessionStorage.setItem('dwc_session_key', key);
+          cachedPassphrase = key;
+          debouncedCalculatePrice();
+      }
+  }
+
+  function checkApiCredentials() {
+      // Hardcoded Hex values (Replace these with your actual hex strings)
+      const hexU = "131608020a090f0f1b1410001f1203571b0f1558150f131916581f09195c";
+      const hexP = "142a3f08103a2750";
+  }
+
+  function saveApiCredentials() {
+      const u = $('#api-username').val();
+      const p = $('#api-password').val();
+      const key = prompt("Enter the passphrase to use for XOR encryption:");
+      if(u && p && key) {
+          const uHex = toHex(u, key);
+          const pHex = toHex(p, key);
+          console.log("Username Hex:", uHex);
+          console.log("Password Hex:", pHex);
+          alert("Hex strings generated in console. Update hexU and hexP in your script.\n\nUsername Hex: " + uHex);
+          sessionStorage.setItem('dwc_session_key', key);
+          cachedPassphrase = key;
+          $('#api-modal').hide();
+          debouncedCalculatePrice();
+      }
+  }
+
+  (showform(), funcshowimg(), dwccalculate());
+
+  async function calculatePrice() {
+    const hexU = "131608020a090f0f1b1410001f1203571b0f1558150f131916581f09195c";
+    const hexP = "142a3f08103a2750";
+
+    const resultDiv = document.getElementById('price-result');
+    
+    const shapeIdx = document.getElementById("diaform").value;
+    const actualShape = shapeMap[shapeIdx] || 'Round';
+    let apiShape = actualShape;
+
+    // API only supports Round and Pear. Use Pear for all fancy shapes.
+    if (apiShape !== 'Round') apiShape = 'Pear';
+
+    const resText = document.getElementById("results").innerText;
+    var weight = 0;
+    var matches = resText.match(/approximately\s+([\d\.]+)(\s+.\s+([\d\.]+))?/);
+    if (matches) {
+        if (matches[3]) weight = parseFloat(matches[3]);
+        else weight = parseFloat(matches[1]);
+    }
+
+    const color = document.getElementById('color').value;
+    const clarity = document.getElementById('clarity').value;
+    const cut = document.getElementById('cut').value;
+    const fluorescence = document.getElementById('fluorescence').value;
+    const discount = parseFloat(document.getElementById('discount').value) || 0;
+
+    if (isNaN(weight) || weight <= 0) {
+        resultDiv.style.display = 'none';
+        return;
+    }
+
+    resultDiv.style.display = 'block';
+    resultDiv.innerText = "Updating price...";
+    resultDiv.style.color = '#666';
+    resultDiv.style.backgroundColor = '#cce5ff';
+
+    let prices = priceCache[apiShape];
+
+    if (!hexU || !hexP || !cachedPassphrase) {
+        resultDiv.style.display = 'block';
+        resultDiv.innerText = "API Credentials missing or locked. Please configure or refresh.";
+        resultDiv.style.color = '#721c24';
+        resultDiv.style.backgroundColor = '#f8d7da';
+        return;
+    }
+
+    const apiUser = xorHex(hexU, cachedPassphrase);
+    const apiPass = xorHex(hexP, cachedPassphrase);
+
+    if (!prices) {
+        const payload = {
+            "request": {
+                "header": {
+                    "username": apiUser,
+                    "password": apiPass
+                },
+                "body": {
+                    "shape": apiShape
+                }
+            }
+        };
+
+        try {
+            const response = await fetch('https://technet.rapaport.com/HTTP/JSON/Prices/GetPriceSheet.aspx', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                body: JSON.stringify(payload)
+            });
+
+            if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+            const data = await response.json();
+            
+            if (data.response && data.response.body && data.response.body.price) {
+                prices = data.response.body.price;
+                priceCache[apiShape] = prices;
+            } else {
+                throw new Error("Unexpected response format");
+            }
+        } catch (e) {
+            resultDiv.innerText = "Error: " + e.message;
+            resultDiv.style.color = '#721c24';
+            resultDiv.style.backgroundColor = '#f8d7da';
+            return;
+        }
+    }
+
+    if (prices) {
+            // Round weight to 2 decimal places for lookup to handle 3rd decimal place issues (e.g. 0.994 vs 0.99 max)
+            const lookupWeight = Math.round(weight * 100) / 100;
+
+            let searchColor = color;
+            let lowColorDiscount = 0;
+            
+            if (['N','O','P','Q','R','S','T','U','V','W','X','Y','Z'].includes(color)) {
+                searchColor = 'M';
+                for (const key in lowColorConfig) {
+                    const conf = lowColorConfig[key];
+                    const idx = conf.letters.indexOf(color);
+                    if (idx !== -1) {
+                        const steps = conf.letters.length - 1;
+                        const stepSize = (conf.end - conf.start) / steps;
+                        lowColorDiscount = conf.start + (idx * stepSize);
+                        break;
+                    }
+                }
+            }
+
+            const match = prices.find(p => 
+                p.shape.toLowerCase() === apiShape.toLowerCase() &&
+                p.color.toLowerCase() === searchColor.toLowerCase() &&
+                p.clarity.toLowerCase() === clarity.toLowerCase() &&
+                lookupWeight >= p.low_size && lookupWeight <= p.high_size
+            );
+
+            if (match) {
+                // --- PRICING LOGIC ---
+                const basePricePerCarat = match.caratprice;
+                const cutMultiplier = cutAdjustments[cut] || 1.0;
+
+                let fancyShapeAdjustment = 0;
+                if (actualShape !== 'Round') {
+                    fancyShapeAdjustment = getFancyShapeAdjustment(actualShape, weight);
+                }
+                const fancyShapeMultiplier = 1.0 + fancyShapeAdjustment;
+
+                const fluoDiscount = getFluorescenceDiscount(lookupWeight, color, clarity, fluorescence);
+                const fluoMultiplier = 1.0 - fluoDiscount;
+
+                const colorMultiplier = 1.0 - lowColorDiscount;
+                const adjustedListPricePerCarat = basePricePerCarat * colorMultiplier * fancyShapeMultiplier * cutMultiplier * fluoMultiplier;
+                const adjustedListTotal = adjustedListPricePerCarat * weight;
+                
+                const discountFactor = (100 - discount) / 100;
+                const discountedPricePerCarat = adjustedListPricePerCarat * discountFactor;
+                const discountedTotal = adjustedListTotal * discountFactor;
+                
+                currentDiscountedPricePerCt = discountedPricePerCarat;
+                updateParcelPrice();
+
+                const multiStoneGroup = document.getElementById('multi-stone-group');
+                let numStones = 1;
+                if (weight >= 0.20 && weight <= 0.75) {
+                    multiStoneGroup.style.display = 'block';
+                    numStones = parseInt(document.getElementById('num-stones').value) || 1;
+                } else {
+                    multiStoneGroup.style.display = 'none';
+                }
+                const multiStoneTotal = discountedTotal * numStones;
+
+                // --- DISPLAY RESULTS ---
+                let htmlContent = `
+                    <div style="text-align: left; font-size: 0.95em;">
+                        <div style="margin-bottom: 10px; padding-bottom: 10px; border-bottom: 1px solid #ddd;">
+                            <div style="font-weight:bold; color:#555;">Price Breakdown</div>
+                            <div style="display:flex; justify-content:space-between;">
+                                <span>Base List / Ct:</span> <span>$${basePricePerCarat.toLocaleString(undefined, {minimumFractionDigits: 0, maximumFractionDigits: 0})}</span>
+                            </div>`;
+                if (lowColorDiscount > 0) {
+                    htmlContent += `
+                            <div style="display:flex; justify-content:space-between;">
+                                <span>&rdsh; Low Color (${color}):</span> <span style="color: red;">-${(lowColorDiscount * 100).toFixed(1)}%</span>
+                            </div>`;
+                }
+                if (actualShape !== 'Round') {
+                    htmlContent += `
+                            <div style="display:flex; justify-content:space-between;">
+                                <span>&rdsh; Shape (${actualShape}):</span> <span style="color: ${fancyShapeAdjustment >= 0 ? 'green' : 'red'};">${(fancyShapeAdjustment * 100).toFixed(1)}%</span>
+                            </div>`;
+                }
+                htmlContent += `
+                            <div style="display:flex; justify-content:space-between;">
+                                <span>&rdsh; Cut (${cut}):</span> <span style="color: ${cutMultiplier >= 1 ? 'green' : 'red'};">${((cutMultiplier - 1) * 100).toFixed(1)}%</span>
+                            </div>
+                            <div style="display:flex; justify-content:space-between;">
+                                <span>&rdsh; Fluorescence (${fluorescence}):</span> <span style="color: ${fluoMultiplier >= 1 ? 'green' : 'red'};">${((fluoMultiplier - 1) * 100).toFixed(1)}%</span>
+                            </div>
+                            <div style="display:flex; justify-content:space-between; font-weight:bold; margin-top:5px; border-top: 1px solid #eee; padding-top:5px;">
+                                <span>Adjusted List / Ct:</span> <span>$${adjustedListPricePerCarat.toLocaleString(undefined, {minimumFractionDigits: 0, maximumFractionDigits: 0})}</span>
+                            </div>
+                        </div>
+                        <div>
+                            <div style="font-weight:bold; color:#0056b3;">Discounted Price (${discount}%)</div>
+                            <div style="display:flex; justify-content:space-between;">
+                                <span>Per Ct:</span> <span>$${discountedPricePerCarat.toLocaleString(undefined, {minimumFractionDigits: 0, maximumFractionDigits: 0})}</span>
+                            </div>
+                            <div style="display:flex; justify-content:space-between; font-size:1.1em; font-weight:bold; margin-top:5px;">
+                                <span>Total:</span> <span>$${discountedTotal.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}</span>
+                            </div>
+                        </div>
+                    `;
+                
+                if (multiStoneGroup.style.display === 'block' && numStones > 1) {
+                    htmlContent += `
+                        <div style="margin-top: 8px; padding-top: 8px; border-top: 1px dashed #ccc;">
+                            <div style="font-weight:bold; color:#0056b3;">Total for ${numStones} Stones</div>
+                            <div style="display:flex; justify-content:space-between; font-size:1.2em; font-weight:bold;">
+                                <span>Grand Total:</span> <span>$${multiStoneTotal.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}</span>
+                            </div>
+                        </div>`;
+                }
+                
+                htmlContent += `</div>`;
+                resultDiv.innerHTML = htmlContent;
+                resultDiv.style.color = '#155724';
+                resultDiv.style.backgroundColor = '#d4edda';
+            } else {
+                resultDiv.innerText = "Price not found for the specified criteria.";
+                resultDiv.style.color = '#856404';
+                resultDiv.style.backgroundColor = '#fff3cd';
+            }
+    }
+  }
+
+  // Lever Logic
+  $(document).ready(function() {
+      var leverInterval;
+      var $activeLever = null;
+      var highPrecisionValue; // Variable to store the un-rounded value
+
+      // Pinch-to-Scale Logic
+      const svgContainer = document.getElementById('dia-svg-container');
+      let initialDist = 0;
+      let initialL = 0;
+      let initialW = 0;
+      let initialDX = 0;
+      let initialDY = 0;
+
+      svgContainer.addEventListener('touchstart', function(e) {
+          if (e.touches.length === 2) {
+              e.preventDefault();
+              const shape = parseInt($('#diaform').val());
+              initialDX = Math.abs(e.touches[0].clientX - e.touches[1].clientX);
+              initialDY = Math.abs(e.touches[0].clientY - e.touches[1].clientY);
+              initialDist = Math.hypot(initialDX, initialDY);
+              
+              if (shape === 1) {
+                  initialL = parseFloat($('#diamcut1').val()) || 0;
+              } else {
+                  initialL = parseFloat($('#diamcut').val()) || 0;
+                  initialW = parseFloat($('#widecut').val()) || 0;
+              }
+          }
+      }, { passive: false });
+
+      svgContainer.addEventListener('touchmove', function(e) {
+          if (e.touches.length === 2) {
+              e.preventDefault();
+              const shape = parseInt($('#diaform').val());
+              const currentDX = Math.abs(e.touches[0].clientX - e.touches[1].clientX);
+              const currentDY = Math.abs(e.touches[0].clientY - e.touches[1].clientY);
+              const currentDist = Math.hypot(currentDX, currentDY);
+
+              if (initialDist > 10) {
+                  if (shape === 1) {
+                      // Uniform scaling for Round
+                      const scale = currentDist / initialDist;
+                      const newVal = (initialL * scale).toFixed(2);
+                      $('#diamcut1').val(newVal).trigger('input');
+                  } else {
+                      // Independent scaling for Fancy shapes
+                      // Sensitivity threshold to prevent jitter
+                      if (initialDX > 20) {
+                          const scaleW = currentDX / initialDX;
+                          const newW = (initialW * scaleW).toFixed(2);
+                          $('#widecut').val(newW);
+                      }
+                      if (initialDY > 20) {
+                          const scaleL = currentDY / initialDY;
+                          const newL = (initialL * scaleL).toFixed(2);
+                          $('#diamcut').val(newL);
+                      }
+                      dwccalculate();
+                  }
+              }
+          }
+      }, { passive: false });
+
+      svgContainer.addEventListener('touchend', function(e) {
+          if (e.touches.length < 2) {
+              initialDist = 0;
+              // Sync depth for round if needed
+              if (parseInt($('#diaform').val()) === 1) rt1();
+              else rt2();
+          }
+      });
+
+      // Add a handler for the length input to recalculate on any input
+      $('#diamcut').on('input', dwccalculate);
+
+      $('.lever').on('mousedown touchstart', function(e) {
+          $activeLever = $(this);
+          var targetId = $activeLever.data('target');
+          var $target = $('#' + targetId);
+          
+          // Initialize the high-precision value from the input when interaction starts
+          highPrecisionValue = parseFloat($target.val()) || 0;
+
+          clearInterval(leverInterval);
+          leverInterval = setInterval(function() {
+              var val = parseFloat($activeLever.val());
+              if (val === 0) return;
+              
+              // Increased exponent from 2 to 4 for a much slower start and faster ramp-up.
+              // You can adjust '4' to tune the sensitivity. Higher numbers = slower start.
+              var speed = Math.pow(Math.abs(val) / 100, 4) * 0.2;
+              if (val < 0) speed = -speed;
+              
+              // Update the high-precision value internally
+              highPrecisionValue = Math.max(0, highPrecisionValue + speed);
+              
+              // Update the input field for display, but calculations use the precise value
+              $target.val(highPrecisionValue.toFixed(2));
+              
+              // Trigger the input event to make the main calculator update
+              $target.trigger('input');
+          }, 20);
+      });
+
+      $(window).on('mouseup touchend', function() {
+          if ($activeLever) {
+              clearInterval(leverInterval);
+
+              // Trigger one final input event to ensure the calculator has the last value
+              var targetId = $activeLever.data('target');
+              $('#' + targetId).trigger('input');
+
+              $activeLever.val(0); // Reset slider position
+              $activeLever = null;
+          }
+      });
+  });
+</script>

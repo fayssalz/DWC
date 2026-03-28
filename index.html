@@ -231,13 +231,6 @@
 
         <div id="melee-container" class="results-box" style="display: none; margin-top: 10px; background-color: #e6f7ff; text-align: left; padding: 10px 15px;">
             <div id="melee-data-display"></div>
-            <div style="margin-top: 10px; border-top: 1px solid #b8daff; padding-top: 10px;">
-                <label style="font-size: 0.9em; font-weight: bold; display:block; margin-bottom:5px;">Parcel Price Calculator</label>
-                <div style="display: flex; gap: 10px; align-items: center;">
-                    <input type="number" id="parcel-weight" placeholder="Total Ct" step="0.01" style="width: 100px; padding: 5px;" oninput="updateParcelPrice()">
-                    <span id="parcel-price-result" style="font-weight: bold; color: #0056b3; font-size: 1.1em;">$0.00</span>
-                </div>
-            </div>
         </div>
 
     </form>
@@ -312,13 +305,25 @@
                 </select>
             </div>
         </div>
-        <div class="form-group" id="multi-stone-group" style="display:none;">
-            <label for="num-stones">Number of Stones</label>
-            <input type="number" id="num-stones" value="1" min="1" step="1" oninput="debouncedCalculatePrice()">
-        </div>
         <div class="form-group">
             <label for="discount">Discount (%)</label>
             <input type="number" id="discount" value="35" step="0.1" oninput="debouncedCalculatePrice()">
+        </div>
+        <div class="results-box" id="parcel-calc-box" style="margin-top: 10px; background-color: #e6f7ff; text-align: left; padding: 10px 15px; display:none;">
+            <label style="font-size: 0.9em; font-weight: bold; display:block; margin-bottom:10px;">Parcel Price Calculator</label>
+            <div style="display: flex; gap: 10px; align-items: flex-end; flex-wrap: wrap;">
+                <div style="flex: 1; min-width: 80px;">
+                    <label for="num-stones" style="font-size: 0.75em; font-weight: 600; margin-bottom: 3px;">Stones</label>
+                    <input type="number" id="num-stones" value="1" min="1" step="1" style="padding: 5px; font-size: 0.9em;" oninput="syncParcel('stones')">
+                </div>
+                <div style="flex: 1.5; min-width: 100px;">
+                    <label for="parcel-weight" style="font-size: 0.75em; font-weight: 600; margin-bottom: 3px;">Total Weight (ct)</label>
+                    <input type="number" id="parcel-weight" placeholder="Total Ct" step="0.01" style="padding: 5px; font-size: 0.9em;" oninput="syncParcel('weight')">
+                </div>
+                <div style="flex: 1.5; text-align: right; padding-bottom: 5px;">
+                    <span id="parcel-price-result" style="font-weight: bold; color: #0056b3; font-size: 1.15em;">$0.00</span>
+                </div>
+            </div>
         </div>
         <div id="price-result" class="results-box" style="display:none; margin-top:10px;"></div>
     </div>
@@ -586,6 +591,22 @@
 
   const priceCache = {};
   let currentDiscountedPricePerCt = 0;
+
+  function syncParcel(source) {
+      const singleWeight = parseFloat(document.getElementById('est-weight').value) || 0;
+      if (singleWeight <= 0) return;
+      const numStonesInput = document.getElementById('num-stones');
+      const totalWeightInput = document.getElementById('parcel-weight');
+
+      if (source === 'stones') {
+          const n = parseInt(numStonesInput.value) || 0;
+          totalWeightInput.value = (n * singleWeight).toFixed(3);
+      } else if (source === 'weight') {
+          const t = parseFloat(totalWeightInput.value) || 0;
+          numStonesInput.value = Math.round(t / singleWeight);
+      }
+      debouncedCalculatePrice();
+  }
 
   function updateParcelPrice() {
       const weight = parseFloat(document.getElementById('parcel-weight').value) || 0;
@@ -1226,16 +1247,15 @@
                 const discountedTotal = adjustedListTotal * discountFactor;
                 
                 currentDiscountedPricePerCt = discountedPricePerCarat;
+
+                // Show parcel calculator box when price is found
+                document.getElementById('parcel-calc-box').style.display = 'block';
+
+                let numStones = parseInt(document.getElementById('num-stones').value) || 1;
+                // Ensure parcel weight reflects current stone count * weight
+                document.getElementById('parcel-weight').value = (numStones * weight).toFixed(3);
                 updateParcelPrice();
 
-                const multiStoneGroup = document.getElementById('multi-stone-group');
-                let numStones = 1;
-                if (weight >= 0.20 && weight <= 0.75) {
-                    multiStoneGroup.style.display = 'block';
-                    numStones = parseInt(document.getElementById('num-stones').value) || 1;
-                } else {
-                    multiStoneGroup.style.display = 'none';
-                }
                 const multiStoneTotal = discountedTotal * numStones;
 
                 // --- DISPLAY RESULTS ---
@@ -1286,7 +1306,7 @@
                         </div>
                     `;
                 
-                if (multiStoneGroup.style.display === 'block' && numStones > 1) {
+                if (numStones > 1) {
                     htmlContent += `
                         <div style="margin-top: 8px; padding-top: 8px; border-top: 1px dashed #ccc;">
                             <div style="font-weight:bold; color:#0056b3;">Total for ${numStones} Stones</div>
@@ -1301,6 +1321,7 @@
                 resultDiv.style.color = '#155724';
                 resultDiv.style.backgroundColor = '#d4edda';
             } else {
+                document.getElementById('parcel-calc-box').style.display = 'none';
                 resultDiv.innerText = "Price not found for the specified criteria.";
                 resultDiv.style.color = '#856404';
                 resultDiv.style.backgroundColor = '#fff3cd';
